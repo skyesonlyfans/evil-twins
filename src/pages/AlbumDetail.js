@@ -3,8 +3,9 @@ import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { albums } from '../db/songs';
 import { usePlayer } from '../contexts/PlayerContext';
+import { useDownloads } from '../contexts/DownloadContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faDownload, faCheckCircle, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   color: ${({ theme }) => theme.colors.text};
@@ -65,31 +66,48 @@ const AlbumMeta = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const SongListContainer = styled.div`
+const ActionsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
   padding: 24px 32px;
 `;
 
-const PlayButton = styled.button`
-    background-color: ${({ theme }) => theme.colors.primary};
+const ActionButton = styled.button`
+    background-color: transparent;
     border: none;
-    border-radius: 50%;
-    width: 56px;
-    height: 56px;
-    color: white;
-    font-size: 1.5rem;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1.8rem;
     cursor: pointer;
-    margin-bottom: 24px;
     transition: all 0.2s ease;
 
     &:hover {
-        transform: scale(1.05);
-        background-color: ${({ theme }) => theme.colors.primaryDark};
+        color: ${({ theme }) => theme.colors.text};
+        transform: scale(1.1);
     }
+`;
+
+const PlayButton = styled(ActionButton)`
+    background-color: ${({ theme }) => theme.colors.primary};
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+
+    &:hover {
+        background-color: ${({ theme }) => theme.colors.primaryDark};
+        color: white;
+    }
+`;
+
+const SongListContainer = styled.div`
+  padding: 0 32px 24px 32px;
 `;
 
 const SongRow = styled.div`
   display: grid;
-  grid-template-columns: 30px 1fr;
+  grid-template-columns: 30px 1fr 50px;
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
@@ -99,7 +117,9 @@ const SongRow = styled.div`
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    color: ${({ theme }) => theme.colors.text};
+    .song-action-icon {
+        opacity: 1;
+    }
   }
 `;
 
@@ -113,9 +133,25 @@ const SongTitle = styled.p`
   color: ${({ theme, $isPlaying }) => $isPlaying ? theme.colors.primary : theme.colors.text};
 `;
 
+const DownloadStatusIcon = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme, $isDownloaded }) => $isDownloaded ? theme.colors.primary : theme.colors.textSecondary};
+  opacity: ${({ $isDownloaded }) => $isDownloaded ? '1' : '0'};
+  font-size: 1rem;
+  cursor: pointer;
+
+  &.song-action-icon:hover {
+    color: ${({ theme }) => theme.colors.text};
+  }
+`;
+
+
 const AlbumDetail = () => {
   const { albumId } = useParams();
   const { playAlbum, currentTrack } = usePlayer();
+  const { downloadedSongIds, downloadAlbum, downloadSong, deleteSong } = useDownloads();
+
   const album = albums.find((a) => a.id === albumId);
 
   if (!album) {
@@ -140,20 +176,39 @@ const AlbumDetail = () => {
           <AlbumMeta>{album.artist} &bull; {album.songs.length} songs</AlbumMeta>
         </AlbumInfo>
       </AlbumHeader>
-      <SongListContainer>
+      
+      <ActionsContainer>
         <PlayButton onClick={handlePlayAlbum} aria-label={`Play ${album.title}`}>
           <FontAwesomeIcon icon={faPlay} />
         </PlayButton>
-        {album.songs.map((song, index) => (
-          <SongRow 
-            key={song.id} 
-            onClick={() => handlePlayTrack(index)}
-            $isPlaying={currentTrack?.id === song.id}
-          >
-            <SongIndex>{index + 1}</SongIndex>
-            <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
-          </SongRow>
-        ))}
+        <ActionButton onClick={() => downloadAlbum(album.songs)} aria-label={`Download ${album.title}`}>
+            <FontAwesomeIcon icon={faDownload} />
+        </ActionButton>
+      </ActionsContainer>
+
+      <SongListContainer>
+        {album.songs.map((song, index) => {
+          const isDownloaded = downloadedSongIds.has(song.id);
+          return (
+            <SongRow 
+              key={song.id} 
+              $isPlaying={currentTrack?.id === song.id}
+            >
+              <SongIndex onClick={() => handlePlayTrack(index)}>{index + 1}</SongIndex>
+              <SongTitle onClick={() => handlePlayTrack(index)} $isPlaying={currentTrack?.id === song.id}>
+                {song.title}
+              </SongTitle>
+              <DownloadStatusIcon
+                className="song-action-icon"
+                $isDownloaded={isDownloaded}
+                onClick={() => isDownloaded ? deleteSong(song) : downloadSong(song)}
+                aria-label={isDownloaded ? 'Delete from downloads' : 'Download'}
+              >
+                <FontAwesomeIcon icon={isDownloaded ? faCheckCircle : faDownload} />
+              </DownloadStatusIcon>
+            </SongRow>
+          );
+        })}
       </SongListContainer>
     </PageContainer>
   );
