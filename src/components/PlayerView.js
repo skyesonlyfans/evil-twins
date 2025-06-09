@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
+import { findBestGeniusUrl, getLyrics } from '../services/genius';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerViewOverlay = styled.div`
   position: fixed;
@@ -12,10 +13,7 @@ const PlayerViewOverlay = styled.div`
   height: 100%;
   z-index: 2000;
   display: flex;
-  align-items: center;
-  justify-content: center;
   
-  /* Blurred background effect */
   &::before {
     content: '';
     position: absolute;
@@ -26,20 +24,30 @@ const PlayerViewOverlay = styled.div`
     background-image: url(${props => props.bgImage});
     background-size: cover;
     background-position: center;
-    filter: blur(20px) brightness(0.5);
+    filter: blur(30px) brightness(0.4);
+    transform: scale(1.1);
     z-index: -1;
   }
 `;
 
 const PlayerViewContent = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 5vw;
   color: ${({ theme }) => theme.colors.text};
-  padding: 20px;
+  padding: 80px 5vw;
   width: 100%;
   height: 100%;
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 80px 20px 20px 20px;
+    gap: 40px;
+    overflow-y: auto;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -54,11 +62,20 @@ const CloseButton = styled.button`
   height: 40px;
   font-size: 1.2rem;
   cursor: pointer;
+  z-index: 10;
+`;
+
+const ArtAndControls = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 500px;
 `;
 
 const AlbumArtLarge = styled.img`
   width: 100%;
-  max-width: 400px;
   height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 12px;
@@ -66,11 +83,15 @@ const AlbumArtLarge = styled.img`
   margin-bottom: 40px;
 `;
 
+const TrackInfo = styled.div`
+  text-align: center;
+  width: 100%;
+`;
+
 const TrackTitleLarge = styled.h1`
   font-size: 2.5rem;
   font-weight: 900;
   margin: 0 0 10px 0;
-  text-align: center;
 `;
 
 const TrackArtistLarge = styled.h2`
@@ -78,20 +99,19 @@ const TrackArtistLarge = styled.h2`
   font-weight: 400;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0 0 40px 0;
-  text-align: center;
 `;
 
 const ControlsContainer = styled.div`
   display: flex;
+  width: 100%;
   align-items: center;
-  justify-content: center;
-  gap: 40px;
+  justify-content: space-around;
 `;
 
 const ControlButton = styled.button`
   background: none;
   border: none;
-  color: ${({ theme }) => theme.colors.textSecondary};
+  color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.colors.textSecondary};
   font-size: 1.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -119,19 +139,67 @@ const PlayPauseButton = styled(ControlButton)`
   }
 `;
 
+const LyricsPanel = styled.div`
+  flex: 1;
+  height: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 1.2rem;
+  font-weight: bold;
+  line-height: 2;
+  
+  p {
+    margin: 0;
+  }
+  
+  @media (max-width: 1024px) {
+    height: auto;
+    min-height: 200px;
+  }
+`;
+
+const LyricsContainer = styled.div`
+  overflow-y: auto;
+  padding-right: 15px;
+  text-align: left;
+  
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background-color: #555; border-radius: 20px; }
+`;
+
+
 const PlayerView = () => {
   const { 
-    currentTrack, 
-    isPlaying, 
-    setIsPlaying, 
-    playNext, 
-    playPrevious, 
-    togglePlayerView 
+    currentTrack, isPlaying, isShuffling,
+    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView 
   } = usePlayer();
 
-  if (!currentTrack) {
-    return null; // Don't render if there's no track
-  }
+  const [lyrics, setLyrics] = useState('');
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    const fetchLyricsData = async () => {
+      setIsLoadingLyrics(true);
+      setLyrics('');
+      const url = await findBestGeniusUrl(currentTrack);
+      if (url) {
+        const scrapedLyrics = await getLyrics(url);
+        setLyrics(scrapedLyrics || 'Lyrics not available for this track.');
+      } else {
+        setLyrics('Could not find this song on Genius.');
+      }
+      setIsLoadingLyrics(false);
+    };
+
+    fetchLyricsData();
+  }, [currentTrack]);
+
+  if (!currentTrack) return null;
 
   return (
     <PlayerViewOverlay bgImage={currentTrack.cover}>
@@ -139,20 +207,37 @@ const PlayerView = () => {
         <FontAwesomeIcon icon={faChevronDown} />
       </CloseButton>
       <PlayerViewContent>
-        <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
-        <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
-        <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
-        <ControlsContainer>
-          <ControlButton onClick={playPrevious} aria-label="Previous Song">
-            <FontAwesomeIcon icon={faStepBackward} />
-          </ControlButton>
-          <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
-            <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
-          </PlayPauseButton>
-          <ControlButton onClick={playNext} aria-label="Next Song">
-            <FontAwesomeIcon icon={faStepForward} />
-          </ControlButton>
-        </ControlsContainer>
+        <ArtAndControls>
+          <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
+          <TrackInfo>
+            <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
+            <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
+          </TrackInfo>
+          <ControlsContainer>
+            <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
+              <FontAwesomeIcon icon={faRandom} />
+            </ControlButton>
+            <ControlButton onClick={playPrevious} aria-label="Previous Song">
+              <FontAwesomeIcon icon={faStepBackward} />
+            </ControlButton>
+            <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
+              <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
+            </PlayPauseButton>
+            <ControlButton onClick={playNext} aria-label="Next Song">
+              <FontAwesomeIcon icon={faStepForward} />
+            </ControlButton>
+            <ControlButton style={{opacity: 0, cursor: 'default'}}> {/* Placeholder for balance */}
+                <FontAwesomeIcon icon={faRandom} />
+            </ControlButton>
+          </ControlsContainer>
+        </ArtAndControls>
+
+        <LyricsPanel>
+          <LyricsContainer>
+            {isLoadingLyrics ? 'Loading lyrics...' : <div dangerouslySetInnerHTML={{ __html: lyrics }} />}
+          </LyricsContainer>
+        </LyricsPanel>
+        
       </PlayerViewContent>
     </PlayerViewOverlay>
   );
