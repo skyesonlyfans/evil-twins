@@ -29,10 +29,9 @@ export const PlayerProvider = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPlayerViewOpen, setIsPlayerViewOpen] = useState(false);
 
-  // New state for time and progress
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const audioRef = useRef(null); // Ref to access the actual <audio> element
+  const audioRef = useRef(null);
 
   const activeQueue = isShuffling ? shuffledQueue : queue;
   const currentTrack = activeQueue[currentTrackIndex] || null;
@@ -122,7 +121,6 @@ export const PlayerProvider = ({ children }) => {
     isPlayerViewOpen, togglePlayerView, playAlbum, playAndShuffleAll,
     playNext: handlePlayNext, playPrevious: handlePlayPrevious,
     setIsPlaying, toggleShuffle, addToQueue, playSongNext,
-    // Export new time/progress state and functions
     duration, setDuration,
     currentTime, setCurrentTime,
     audioRef, seek
