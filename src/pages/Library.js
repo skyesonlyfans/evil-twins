@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import { useDownloads } from '../contexts/DownloadContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { getDownloadedSongs } from '../utils/db';
+import ContextMenu from '../components/ContextMenu';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   padding: 24px 32px;
@@ -28,7 +29,7 @@ const SongListContainer = styled.div`
 
 const SongRow = styled.div`
   display: grid;
-  grid-template-columns: 50px 1fr 50px;
+  grid-template-columns: 50px 1fr 50px 50px;
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
@@ -38,6 +39,9 @@ const SongRow = styled.div`
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.surfaceHighlight};
+    .song-action-icon {
+        opacity: 1;
+    }
   }
 `;
 
@@ -45,7 +49,6 @@ const SongCover = styled.img`
   width: 40px;
   height: 40px;
   border-radius: 4px;
-  cursor: pointer;
 `;
 
 const SongInfo = styled.div`
@@ -64,22 +67,37 @@ const SongArtist = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
-const DeleteButton = styled.button`
+const MenuButton = styled.button`
   background: none;
   border: none;
   color: ${({ theme }) => theme.colors.textSecondary};
+  opacity: 0;
   font-size: 1rem;
   cursor: pointer;
-  
-  &:hover {
-    color: ${({ theme }) => theme.colors.error};
+  text-align: center;
+
+  &.song-action-icon:hover {
+    color: ${({ theme }) => theme.colors.text};
   }
+
+  ${SongRow}:hover & {
+    opacity: 1;
+  }
+`;
+
+const DeleteButton = styled(MenuButton)`
+    opacity: 1; /* Always show delete button in library */
+    &:hover {
+        color: ${({ theme }) => theme.colors.error};
+    }
 `;
 
 const Library = () => {
   const [localSongs, setLocalSongs] = useState([]);
+  const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
+
   const { downloadedSongIds, deleteSong } = useDownloads();
-  const { playAlbum, currentTrack } = usePlayer();
+  const { playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
 
   useEffect(() => {
     const fetchDownloads = async () => {
@@ -88,15 +106,35 @@ const Library = () => {
     };
 
     fetchDownloads();
-  }, [downloadedSongIds]); // This dependency automatically refreshes the list when a song is added/removed
+  }, [downloadedSongIds]);
 
   const handlePlayTrack = (trackIndex) => {
-    // Set the queue to be ONLY the downloaded songs
     playAlbum(localSongs, trackIndex);
   };
 
+  const handleOpenMenu = (event, song) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setMenuState({
+      isOpen: true,
+      x: event.pageX,
+      y: event.pageY,
+      song: song,
+    });
+  };
+
+  const handleCloseMenu = () => {
+    setMenuState({ ...menuState, isOpen: false });
+  };
+  
+  const menuItems = menuState.song ? [
+    { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
+    { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
+  ] : [];
+
   return (
     <PageContainer>
+      <ContextMenu isOpen={menuState.isOpen} onClose={handleCloseMenu} position={menuState} menuItems={menuItems} />
       <PageTitle>Your Library</PageTitle>
       {localSongs.length === 0 ? (
         <EmptyLibraryMessage>You haven't downloaded any songs yet. Find a song and click the download icon to save it for offline listening.</EmptyLibraryMessage>
@@ -104,14 +142,19 @@ const Library = () => {
         <SongListContainer>
           {localSongs.map((song, index) => (
             <SongRow key={song.id} $isPlaying={currentTrack?.id === song.id}>
-              <SongCover src={song.cover} alt={song.title} onClick={() => handlePlayTrack(index)} />
-              <SongInfo onClick={() => handlePlayTrack(index)}>
-                <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
-                <SongArtist>{song.artist}</SongArtist>
-              </SongInfo>
-              <DeleteButton onClick={() => deleteSong(song)} aria-label={`Delete ${song.title}`}>
+              <div onClick={() => handlePlayTrack(index)} style={{display: 'contents', cursor: 'pointer'}}>
+                <SongCover src={song.cover} alt={song.title} />
+                <SongInfo>
+                  <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
+                  <SongArtist>{song.artist}</SongArtist>
+                </SongInfo>
+              </div>
+              <DeleteButton className="song-action-icon" onClick={() => deleteSong(song)} aria-label={`Delete ${song.title}`}>
                 <FontAwesomeIcon icon={faTrash} />
               </DeleteButton>
+              <MenuButton className="song-action-icon" onClick={(e) => handleOpenMenu(e, song)}>
+                <FontAwesomeIcon icon={faEllipsisV} />
+              </MenuButton>
             </SongRow>
           ))}
         </SongListContainer>
