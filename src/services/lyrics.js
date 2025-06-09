@@ -2,11 +2,6 @@ import axios from 'axios';
 
 const LRC_API_BASE_URL = 'https://lrclib.net/api/get';
 
-/**
- * Parses a standard LRC format string into an array of timed lyric objects.
- * @param {string} lrcText The LRC formatted text.
- * @returns {Array<{time: number, text: string}>}
- */
 const parseLRC = (lrcText) => {
     const lines = lrcText.split('\n');
     const lyrics = [];
@@ -29,12 +24,6 @@ const parseLRC = (lrcText) => {
     return lyrics;
 };
 
-
-/**
- * Fetches lyrics for a given song using the lrclib.net API.
- * @param {object} song The song object with title, artist, albumName, and duration.
- * @returns {Promise<{synced: Array, plain: string}|null>} A promise that resolves to an object with synced and plain lyrics.
- */
 export const getLyrics = async (song, duration) => {
     if (!song) return null;
 
@@ -43,7 +32,7 @@ export const getLyrics = async (song, duration) => {
             params: {
                 track_name: song.title,
                 artist_name: song.artist,
-                album_name: song.albumName || '', // albumName is optional but helps
+                album_name: song.albumName || '',
                 duration: Math.round(duration)
             }
         });
@@ -55,7 +44,7 @@ export const getLyrics = async (song, duration) => {
                 plain: data.plainLyrics || "No plain lyrics available."
             };
         }
-        return null; // No lyrics found
+        return null;
 
     } catch (error) {
         console.error("Error fetching lyrics from lrclib.net:", error);
