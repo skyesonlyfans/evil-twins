@@ -1,9 +1,138 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { css } from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
-import { findBestGeniusUrl, getLyrics } from '../services/genius';
+// Corrected import: Only 'getLyrics' is needed now.
+import { getLyrics } from '../services/genius';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
+
+// ... (All styled-components remain the same as the previous correct version)
+
+const PlayerView = () => {
+    const { 
+    currentTrack, isPlaying, isShuffling, duration, currentTime,
+    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
+  } = usePlayer();
+  
+  const [lyrics, setLyrics] = useState([]);
+  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
+  const [error, setError] = useState(null);
+
+  const activeLineRef = useRef(null);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    const fetchLyricsData = async () => {
+      setIsLoadingLyrics(true);
+      setError(null);
+      setLyrics([]);
+      try {
+        // Corrected logic: Call getLyrics directly with the song object
+        const textLyrics = await getLyrics(currentTrack);
+        
+        if (textLyrics && !textLyrics.toLowerCase().includes("could not be found")) {
+            const lines = textLyrics.split('\n').filter(line => line.trim() !== '');
+            setLyrics(lines);
+        } else {
+           setError(textLyrics); // Show the error message from the API
+           setLyrics([]);
+        }
+      } catch (err) {
+         setError('An error occurred while fetching lyrics.');
+         setLyrics([]);
+      } finally {
+        setIsLoadingLyrics(false);
+      }
+    };
+
+    fetchLyricsData();
+  }, [currentTrack]);
+
+  useEffect(() => {
+      if (duration > 0 && lyrics.length > 0) {
+          const progress = currentTime / duration;
+          const lineIndex = Math.floor(progress * lyrics.length);
+          setCurrentLineIndex(lineIndex);
+      }
+  }, [currentTime, duration, lyrics]);
+
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentLineIndex]);
+
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  if (!currentTrack) return null;
+
+  return (
+    <PlayerViewOverlay bgImage={currentTrack.cover}>
+      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
+        <FontAwesomeIcon icon={faChevronDown} />
+      </CloseButton>
+      <PlayerViewContent>
+        <ArtAndControls>
+            <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
+            <TrackInfo>
+                <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
+                <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
+            </TrackInfo>
+            <ProgressBarContainer>
+                <TimeText>{formatTime(currentTime)}</TimeText>
+                <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(e.target.value)} />
+                <TimeText>{formatTime(duration)}</TimeText>
+            </ProgressBarContainer>
+            <ControlsContainer>
+                <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
+                    <FontAwesomeIcon icon={faRandom} />
+                </ControlButton>
+                <ControlButton onClick={playPrevious} aria-label="Previous Song">
+                    <FontAwesomeIcon icon={faStepBackward} />
+                </ControlButton>
+                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
+                    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
+                </PlayPauseButton>
+                <ControlButton onClick={playNext} aria-label="Next Song">
+                    <FontAwesomeIcon icon={faStepForward} />
+                </ControlButton>
+                <ControlButton style={{opacity: 0, cursor: 'default'}}>
+                    <FontAwesomeIcon icon={faRandom} />
+                </ControlButton>
+            </ControlsContainer>
+        </ArtAndControls>
+        <LyricsPanel>
+          <LyricsContainer>
+            {isLoadingLyrics && <LyricLine>Loading lyrics...</LyricLine>}
+            {error && <LyricLine>{error}</LyricLine>}
+            {!isLoadingLyrics && !error && lyrics.map((line, index) => (
+              <LyricLine
+                key={index}
+                $isActive={index === currentLineIndex}
+                ref={index === currentLineIndex ? activeLineRef : null}
+              >
+                {line}
+              </LyricLine>
+            ))}
+          </LyricsContainer>
+        </LyricsPanel>
+      </PlayerViewContent>
+    </PlayerViewOverlay>
+  );
+};
+
+export default PlayerView;
+
+// All styled components below are unchanged and correct from the previous step.
 
 const PlayerViewOverlay = styled.div`
   position: fixed;
@@ -50,7 +179,7 @@ const PlayerViewContent = styled.div`
     max-width: 100%;
     max-height: 100%;
     gap: 2vh;
-    padding-top: 50px; // Space for the close button
+    padding-top: 50px;
   }
 `;
 
@@ -188,7 +317,7 @@ const LyricsPanel = styled.div`
   justify-content: center;
 
   @media (max-width: 768px) {
-    height: 100%; /* Take remaining height on mobile */
+    height: 100%;
     background: transparent;
   }
 `;
@@ -220,122 +349,3 @@ const LyricLine = styled.p`
         transform: scale(1.05);
     `}
 `;
-
-const PlayerView = () => {
-    const { 
-    currentTrack, isPlaying, isShuffling, duration, currentTime,
-    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
-  } = usePlayer();
-  
-  const [lyrics, setLyrics] = useState([]);
-  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
-
-  const activeLineRef = useRef(null);
-
-  useEffect(() => {
-    if (!currentTrack) return;
-    const fetchLyricsData = async () => {
-      setIsLoadingLyrics(true);
-      setLyrics([]);
-      try {
-        const url = await findBestGeniusUrl(currentTrack);
-        if (url) {
-          const scrapedLyricsHtml = await getLyrics(url);
-          if(scrapedLyricsHtml){
-              const lines = scrapedLyricsHtml.split('<br>').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('['));
-              setLyrics(lines);
-          } else {
-             setLyrics(['Lyrics not available for this track.']);
-          }
-        } else {
-           setLyrics(['Could not find this song on Genius.']);
-        }
-      } catch (err) {
-         setLyrics(['An error occurred while fetching lyrics.']);
-      }
-      setIsLoadingLyrics(false);
-    };
-    fetchLyricsData();
-  }, [currentTrack]);
-
-  useEffect(() => {
-      if (duration > 0 && lyrics.length > 0) {
-          const progress = currentTime / duration;
-          const lineIndex = Math.floor(progress * lyrics.length);
-          setCurrentLineIndex(lineIndex);
-      }
-  }, [currentTime, duration, lyrics]);
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
-  }, [currentLineIndex]);
-
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  if (!currentTrack) return null;
-
-  return (
-    <PlayerViewOverlay bgImage={currentTrack.cover}>
-      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
-        <FontAwesomeIcon icon={faChevronDown} />
-      </CloseButton>
-      <PlayerViewContent>
-        <ArtAndControls>
-            <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
-            <TrackInfo>
-                <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
-                <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
-            </TrackInfo>
-            <ProgressBarContainer>
-                <TimeText>{formatTime(currentTime)}</TimeText>
-                <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(e.target.value)} />
-                <TimeText>{formatTime(duration)}</TimeText>
-            </ProgressBarContainer>
-            <ControlsContainer>
-                <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-                    <FontAwesomeIcon icon={faRandom} />
-                </ControlButton>
-                <ControlButton onClick={playPrevious} aria-label="Previous Song">
-                    <FontAwesomeIcon icon={faStepBackward} />
-                </ControlButton>
-                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
-                    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
-                </PlayPauseButton>
-                <ControlButton onClick={playNext} aria-label="Next Song">
-                    <FontAwesomeIcon icon={faStepForward} />
-                </ControlButton>
-                <ControlButton style={{opacity: 0, cursor: 'default'}}>
-                    <FontAwesomeIcon icon={faRandom} />
-                </ControlButton>
-            </ControlsContainer>
-        </ArtAndControls>
-        <LyricsPanel>
-          <LyricsContainer>
-            {isLoadingLyrics ? 'Loading lyrics...' : 
-              lyrics.map((line, index) => (
-                <LyricLine
-                  key={index}
-                  $isActive={index === currentLineIndex}
-                  ref={index === currentLineIndex ? activeLineRef : null}
-                  dangerouslySetInnerHTML={{ __html: line }}
-                />
-              ))
-            }
-          </LyricsContainer>
-        </LyricsPanel>
-      </PlayerViewContent>
-    </PlayerViewOverlay>
-  );
-};
-
-export default PlayerView;
