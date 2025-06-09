@@ -18,7 +18,7 @@ const shuffleArray = (array) => {
 export const PlayerProvider = ({ children }) => {
   const [allSongs] = useState(() => 
     albums.flatMap(album => 
-      album.songs.map(song => ({ ...song, cover: album.cover }))
+      album.songs.map(song => ({ ...song, cover: album.cover, albumName: album.title }))
     )
   );
   
@@ -53,9 +53,9 @@ export const PlayerProvider = ({ children }) => {
 
   const playAlbum = (albumSongs, startAtIndex = 0) => {
     const songsWithCovers = albumSongs.map(song => {
-        if (song.cover) return song;
+        if (song.cover && song.albumName) return song;
         const parentAlbum = albums.find(a => a.songs.some(s => s.id === song.id));
-        return { ...song, cover: parentAlbum.cover };
+        return { ...song, cover: parentAlbum.cover, albumName: parentAlbum.title };
     });
     setQueue(songsWithCovers);
     setCurrentTrackIndex(startAtIndex);
