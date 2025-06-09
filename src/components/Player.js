@@ -11,29 +11,30 @@ const PlayerBarContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.surface};
   border-top: 1px solid #282828;
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: 3fr 4fr 3fr;
   align-items: center;
   padding: 0 20px;
   height: 90px;
   width: 100%;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 
+      "info controls"
+      "player player";
     height: auto;
     padding: 10px;
+    row-gap: 10px;
   }
 `;
 
 const TrackInfoContainer = styled.div`
+  grid-area: info;
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 180px;
   cursor: pointer;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
 `;
 
 const AlbumArt = styled.img`
@@ -45,11 +46,15 @@ const AlbumArt = styled.img`
 const TrackDetails = styled.div`
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 const TrackTitle = styled.span`
   color: ${({ theme }) => theme.colors.text};
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const TrackArtist = styled.span`
@@ -58,6 +63,7 @@ const TrackArtist = styled.span`
 `;
 
 const PlayerControlsContainer = styled.div`
+  grid-area: player;
   width: 100%;
   max-width: 722px;
   justify-self: center;
@@ -67,13 +73,24 @@ const PlayerControlsContainer = styled.div`
   .rhap_header { display: none; }
   .rhap_time { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 0.8rem; }
   .rhap_progress-indicator, .rhap_volume-indicator { background: ${({ theme }) => theme.colors.primary}; }
+  .rhap_progress-bar-show-download { background-color: #555 !important; }
   .rhap_progress-filled { background-color: #fff; }
   .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
-  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1rem; &:hover { color: #fff; } }
-  .rhap_play-pause-button { color: #fff; font-size: 2rem; &:hover { color: #fff; } }
+  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
+  .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
+  
+  @media (max-width: 768px) {
+      .rhap_main-controls {
+          justify-content: center;
+      }
+      .rhap_additional-controls, .rhap_volume-controls {
+          display: none;
+      }
+  }
 `;
 
 const CustomControlsContainer = styled.div`
+  grid-area: controls;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -84,7 +101,7 @@ const CustomControlButton = styled.button`
   background: none;
   border: none;
   color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.colors.textSecondary};
-  font-size: 1rem;
+  font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 
@@ -98,11 +115,9 @@ const Player = () => {
   const {
     currentTrack, isPlaying, isShuffling, togglePlayerView, setIsPlaying,
     playNext, playPrevious, toggleShuffle,
-    // Get the new time state and functions from the context
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
-  // Sync context play state with the audio element
   useEffect(() => {
     if (audioRef.current && audioRef.current.audio.current) {
         if (isPlaying && currentTrack) {
@@ -134,7 +149,7 @@ const Player = () => {
         
         <PlayerControlsContainer>
           <AudioPlayer
-            ref={audioRef} // <-- Attach the shared ref to the player
+            ref={audioRef}
             autoPlayAfterSrcChange={false}
             src={currentTrack ? currentTrack.url : ""}
             onPlay={handlePlay}
@@ -142,10 +157,9 @@ const Player = () => {
             onClickNext={playNext}
             onClickPrevious={playPrevious}
             onEnded={playNext}
-            // Listen for time updates and send them to the context
             onListen={(e) => setCurrentTime(e.target.currentTime)}
             onLoadedMetadata={(e) => setDuration(e.target.duration)}
-            listenInterval={100} // Update time every 100ms
+            listenInterval={100}
             showSkipControls={true}
             showJumpControls={false}
           />
