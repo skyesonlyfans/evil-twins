@@ -21,12 +21,13 @@ const SidebarContainer = styled.div`
 
 const SidebarLogo = styled.h1`
   font-family: ${({ theme }) => theme.fonts.logo};
-  font-size: 2.5rem;
+  font-size: 2.2rem;  /* <-- Reduced font size */
   font-weight: normal;
   color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 2rem;
+  margin: 0 0 2rem 0; /* Adjusted margin */
   text-align: center;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px; /* <-- Reduced letter spacing */
+  line-height: 1.2;    /* <-- Added line-height for better spacing */
 `;
 
 const NavList = styled.nav`
