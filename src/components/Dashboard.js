@@ -2,9 +2,10 @@ import React from 'react';
 import styled from 'styled-components';
 import { Outlet } from 'react-router-dom';
 
-import { PlayerProvider } from '../contexts/PlayerContext';
+import { PlayerProvider, usePlayer } from '../contexts/PlayerContext';
 import Sidebar from './Sidebar';
 import Player from './Player';
+import PlayerView from './PlayerView';
 
 const AppLayout = styled.div`
   height: 100vh;
@@ -32,23 +33,37 @@ const PlayerWrapper = styled.div`
   grid-area: player;
 `;
 
+// A small component to consume the context and decide what to show.
+// This prevents the main Dashboard from re-rendering every time the player state changes.
+const AppContent = () => {
+    const { isPlayerViewOpen } = usePlayer();
+
+    return (
+        <>
+            {isPlayerViewOpen && <PlayerView />}
+            <AppLayout>
+                <SidebarWrapper>
+                    <Sidebar />
+                </SidebarWrapper>
+
+                <MainContent>
+                    {/* Nested pages from App.js will render here */}
+                    <Outlet />
+                </MainContent>
+
+                <PlayerWrapper>
+                    <Player />
+                </PlayerWrapper>
+            </AppLayout>
+        </>
+    )
+}
+
+
 const Dashboard = () => {
   return (
     <PlayerProvider>
-      <AppLayout>
-        <SidebarWrapper>
-          <Sidebar />
-        </SidebarWrapper>
-
-        <MainContent>
-          {/* Nested pages from App.js will render here */}
-          <Outlet />
-        </MainContent>
-
-        <PlayerWrapper>
-          <Player />
-        </PlayerWrapper>
-      </AppLayout>
+      <AppContent />
     </PlayerProvider>
   );
 };
