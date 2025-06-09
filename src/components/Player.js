@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
+import { useDownloads } from '../contexts/DownloadContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight, faExpand, faCompress, faMusic } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
   background-color: #181818;
@@ -21,6 +22,7 @@ const PlayerBarContainer = styled.div`
     grid-template-columns: 1fr auto;
     padding: 8px 16px;
     height: 70px;
+    gap: 10px;
   }
 `;
 
@@ -30,6 +32,7 @@ const TrackInfoContainer = styled.div`
   gap: 14px;
   min-width: 180px;
   cursor: pointer;
+  overflow: hidden;
 `;
 
 const AlbumArt = styled.img`
@@ -37,17 +40,27 @@ const AlbumArt = styled.img`
   height: 56px;
   border-radius: 4px;
   background-color: #333;
+  flex-shrink: 0;
+  @media (max-width: 768px) {
+    width: 48px;
+    height: 48px;
+  }
 `;
 
 const PlaceholderArt = styled.div`
   width: 56px;
   height: 56px;
+  flex-shrink: 0;
   border-radius: 4px;
   background-color: #333;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #888;
+   @media (max-width: 768px) {
+    width: 48px;
+    height: 48px;
+  }
 `;
 
 const TrackDetails = styled.div`
@@ -77,24 +90,24 @@ const PlayerControlsContainer = styled.div`
   .rhap_container { background-color: transparent; box-shadow: none; padding: 0; }
   .rhap_time { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 0.8rem; }
   .rhap_progress-indicator, .rhap_volume-indicator { background: ${({ theme }) => theme.colors.primary}; }
-  .rhap_progress-bar-show-download { background-color: #555 !important; }
   .rhap_progress-filled { background-color: #fff; }
   .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
   .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
   .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
 
   @media (max-width: 768px) {
-    .rhap_progress-section, .rhap_volume-controls, .rhap_additional-controls {
-      display: none;
-    }
-    .rhap_main-controls {
-      justify-content: flex-end;
-      padding-right: 10px;
-    }
-     .rhap_play-pause-button {
-      font-size: 1.8rem;
-    }
+    display: none; // Hide the full player controls on mobile
   }
+`;
+
+// Controls specifically for mobile view
+const MobileControls = styled.div`
+    display: none;
+    @media (max-width: 768px) {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
 `;
 
 const CustomControlsContainer = styled.div`
@@ -124,16 +137,15 @@ const CustomControlButton = styled.button`
   }
 `;
 
-
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const { downloadedSongIds, downloadSong } = useDownloads();
   const {
     currentTrack, isPlaying, isShuffling, togglePlayerView, isPlayerViewOpen,
     setIsPlaying, playNext, playPrevious, toggleShuffle,
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
-  // This effect ensures the player component reacts to state changes from the context
   useEffect(() => {
     if (audioRef.current && audioRef.current.audio.current) {
         if (isPlaying && currentTrack) {
@@ -147,7 +159,9 @@ const Player = () => {
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
   const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
-  
+
+  const isCurrentSongDownloaded = currentTrack && downloadedSongIds.has(currentTrack.id);
+
   return (
     <>
       <PlayerBarContainer>
@@ -163,6 +177,7 @@ const Player = () => {
           </TrackDetails>
         </TrackInfoContainer>
         
+        {/* Full desktop player */}
         <PlayerControlsContainer>
           <AudioPlayer
             ref={audioRef}
@@ -178,10 +193,23 @@ const Player = () => {
             listenInterval={100}
             showSkipControls={true}
             showJumpControls={false}
-            layout="stacked-reverse"
           />
         </PlayerControlsContainer>
+        
+        {/* Mobile-only controls */}
+        <MobileControls>
+            <CustomControlButton onClick={handleLyricsClick} disabled={!currentTrack}>
+                <FontAwesomeIcon icon={faQuoteRight} />
+            </CustomControlButton>
+            <CustomControlButton onClick={() => currentTrack && downloadSong(currentTrack)} disabled={!currentTrack || isCurrentSongDownloaded}>
+                <FontAwesomeIcon icon={isCurrentSongDownloaded ? faCheckCircle : faDownload} />
+            </CustomControlButton>
+             <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.8rem', color: 'white'}}>
+                <FontAwesomeIcon icon={isPlaying ? 'pause' : 'play'} />
+            </CustomControlButton>
+        </MobileControls>
 
+        {/* Desktop-only extra controls */}
         <CustomControlsContainer>
             <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle" disabled={!currentTrack}>
                 <FontAwesomeIcon icon={faRandom} />
