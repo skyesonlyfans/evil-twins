@@ -13,9 +13,10 @@ const PlayerViewOverlay = styled.div`
   height: 100%;
   z-index: 2000;
   display: flex;
+  flex-direction: column; /* Changed to column */
   align-items: center;
   justify-content: center;
-  padding: 20px; /* Add padding for smaller screens */
+  padding: 20px;
   
   &::before {
     content: '';
@@ -35,14 +36,22 @@ const PlayerViewOverlay = styled.div`
 
 const PlayerViewContent = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Changed to row for side-by-side on desktop */
   align-items: center;
   justify-content: center;
   color: ${({ theme }) => theme.colors.text};
   width: 100%;
   height: 100%;
-  max-width: 90vh; /* Max-width is now tied to the viewport height */
-  max-height: 90vh; /* Max-height to ensure it fits */
+  max-width: 90vw;
+  max-height: 90vh;
+  gap: 4vw;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    max-width: 100%;
+    max-height: 100%;
+    gap: 2vh;
+  }
 `;
 
 const CloseButton = styled.button`
@@ -61,17 +70,17 @@ const CloseButton = styled.button`
 `;
 
 const ArtAndControls = styled.div`
-  flex-shrink: 0; /* Prevent this from shrinking weirdly */
+  flex: 1; /* Takes up half the space */
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding-bottom: 2vh;
+  max-width: 500px;
 `;
 
 const AlbumArtLarge = styled.img`
   width: 100%;
-  max-width: 45vh; /* Size relative to viewport height */
+  max-width: 45vh; 
   height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 12px;
@@ -86,13 +95,13 @@ const TrackInfo = styled.div`
 `;
 
 const TrackTitleLarge = styled.h1`
-  font-size: clamp(1.5rem, 4vw, 2.5rem); /* Responsive font size */
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
   font-weight: 900;
   margin: 0 0 10px 0;
 `;
 
 const TrackArtistLarge = styled.h2`
-  font-size: clamp(1rem, 2.5vw, 1.5rem); /* Responsive font size */
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
   font-weight: 400;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0;
@@ -160,17 +169,47 @@ const PlayPauseButton = styled(ControlButton)`
   &:hover { color: black; transform: scale(1.05); }
 `;
 
-// Note: No changes to LyricsPanel or LyricsContainer needed for this fix.
 const LyricsPanel = styled.div`
-  /* ... existing styles ... */
+  flex: 1; /* Takes up the other half */
+  height: 80%;
+  width: 100%;
+  max-width: 500px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    height: 40%; /* Takes up less height on mobile */
+  }
 `;
+
 const LyricsContainer = styled.div`
-  /* ... existing styles ... */
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  text-align: center;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  line-height: 2;
+  font-weight: bold;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  scroll-behavior: smooth; /* Smooth scrolling */
+
+  /* Custom Scrollbar for lyrics */
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 20px;
+    border: 3px solid transparent;
+  }
 `;
 
 
 const PlayerView = () => {
-  // All logic and functions remain the same, only styled-components were changed.
   const { 
     currentTrack, isPlaying, isShuffling, duration, currentTime,
     setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
@@ -184,12 +223,16 @@ const PlayerView = () => {
     const fetchLyricsData = async () => {
       setIsLoadingLyrics(true);
       setLyrics('');
-      const url = await findBestGeniusUrl(currentTrack);
-      if (url) {
-        const scrapedLyrics = await getLyrics(url);
-        setLyrics(scrapedLyrics || 'Lyrics not available for this track.');
-      } else {
-        setLyrics('Could not find this song on Genius.');
+      try {
+        const url = await findBestGeniusUrl(currentTrack);
+        if (url) {
+          const scrapedLyrics = await getLyrics(url);
+          setLyrics(scrapedLyrics || 'Lyrics not available for this track.');
+        } else {
+          setLyrics('Could not find this song on Genius.');
+        }
+      } catch (err) {
+        setLyrics('An error occurred while fetching lyrics.');
       }
       setIsLoadingLyrics(false);
     };
@@ -197,7 +240,7 @@ const PlayerView = () => {
   }, [currentTrack]);
 
   useEffect(() => {
-    if (duration > 0 && lyricsRef.current) {
+    if (lyricsRef.current && duration > 0) {
       const scrollPercent = currentTime / duration;
       const scrollHeight = lyricsRef.current.scrollHeight - lyricsRef.current.clientHeight;
       lyricsRef.current.scrollTop = scrollHeight * scrollPercent;
@@ -218,7 +261,6 @@ const PlayerView = () => {
         <FontAwesomeIcon icon={faChevronDown} />
       </CloseButton>
       <PlayerViewContent>
-        {/* The JSX structure remains the same, but will be sized correctly by the new styles */}
         <ArtAndControls>
             <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
             <TrackInfo>
