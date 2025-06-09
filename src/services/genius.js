@@ -87,6 +87,7 @@ export const getLyrics = async (url) => {
             lyrics += container.innerHTML;
         });
 
+        // Remove links and ads from the lyrics html
         lyrics = lyrics.replace(/<a[^>]*>|<\/a>/g, "");
         
         return lyrics.trim() || null;
