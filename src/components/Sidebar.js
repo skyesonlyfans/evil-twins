@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlaylists } from '../contexts/PlaylistContext'; // <-- Import playlists hook
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faSearch, faBook, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faSearch, faBook, faSignOutAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+// We will create this modal in the next step
+// import CreatePlaylistModal from './CreatePlaylistModal'; 
 
 const Backdrop = styled.div`
   position: fixed;
@@ -27,9 +30,8 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 24px;
-  overflow-y: auto;
+  overflow-y: hidden; /* Hide vertical scroll on the container itself */
   
-  /* Mobile-specific overlay styles */
   @media (max-width: 768px) {
     position: fixed;
     top: 0;
@@ -61,7 +63,6 @@ const NavList = styled.nav`
   list-style: none;
   margin: 0;
   padding: 0;
-  flex-grow: 1;
 `;
 
 const StyledNavLink = styled(NavLink)`
@@ -74,12 +75,55 @@ const StyledNavLink = styled(NavLink)`
   font-size: 1rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   transition: color 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:hover, &.active {
     color: ${({ theme }) => theme.colors.text};
   }
 
   svg { width: 24px; text-align: center; }
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid #282828;
+  margin: 16px 0;
+`;
+
+const PlaylistsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+`;
+
+const PlaylistsTitle = styled.h2`
+  font-size: 1rem;
+  font-weight: bold;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+`;
+
+const CreatePlaylistButton = styled.button`
+    background: none;
+    border: none;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1.2rem;
+    cursor: pointer;
+    &:hover { color: white; }
+`;
+
+const PlaylistScrollArea = styled.div`
+  flex-grow: 1;
+  overflow-y: auto;
+  /* Custom scrollbar for this specific area */
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background-color: #434343; border-radius: 4px; }
 `;
 
 const LogoutButton = styled.button`
@@ -93,18 +137,19 @@ const LogoutButton = styled.button`
   font-size: 1rem;
   color: ${({ theme }) => theme.colors.textSecondary};
   transition: color 0.2s ease-in-out;
-  margin-top: auto;
   padding: 12px 0;
+  margin-top: 16px; /* Add some space above the logout button */
 
   &:hover { color: ${({ theme }) => theme.colors.text}; }
 
   svg { width: 24px; text-align: center; }
 `;
 
-// The Sidebar now accepts props to control its mobile state
 const Sidebar = ({ isMobileOpen, onClose }) => {
   const { logout } = useAuth();
+  const { playlists, loadingPlaylists } = usePlaylists();
   const navigate = useNavigate();
+  // const [isModalOpen, setIsModalOpen] = useState(false); // We'll use this in the next step
 
   async function handleLogout() {
     await logout();
@@ -113,24 +158,35 @@ const Sidebar = ({ isMobileOpen, onClose }) => {
 
   return (
     <>
+      {/* <CreatePlaylistModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} /> */}
       {isMobileOpen && <Backdrop onClick={onClose} />}
       <SidebarContainer $isMobileOpen={isMobileOpen}>
         <SidebarLogo>Evil Twins</SidebarLogo>
         <NavList>
-          {/* When a link is clicked, close the mobile menu */}
           <StyledNavLink to="/" end onClick={onClose}>
-            <FontAwesomeIcon icon={faHome} />
-            Home
+            <FontAwesomeIcon icon={faHome} /> Home
           </StyledNavLink>
           <StyledNavLink to="/search" onClick={onClose}>
-            <FontAwesomeIcon icon={faSearch} />
-            Search
+            <FontAwesomeIcon icon={faSearch} /> Search
           </StyledNavLink>
           <StyledNavLink to="/library" onClick={onClose}>
-            <FontAwesomeIcon icon={faBook} />
-            Your Library
+            <FontAwesomeIcon icon={faBook} /> Your Library
           </StyledNavLink>
         </NavList>
+        <Divider />
+        <PlaylistsHeader>
+            <PlaylistsTitle>Playlists</PlaylistsTitle>
+            <CreatePlaylistButton aria-label="Create new playlist" /* onClick={() => setIsModalOpen(true)} */>
+                <FontAwesomeIcon icon={faPlus} />
+            </CreatePlaylistButton>
+        </PlaylistsHeader>
+        <PlaylistScrollArea>
+          {loadingPlaylists ? <p>Loading...</p> : playlists.map(playlist => (
+            <StyledNavLink key={playlist.id} to={`/playlist/${playlist.id}`} onClick={onClose}>
+              {playlist.name}
+            </StyledNavLink>
+          ))}
+        </PlaylistScrollArea>
         <LogoutButton onClick={handleLogout}>
           <FontAwesomeIcon icon={faSignOutAlt} />
           Log Out
