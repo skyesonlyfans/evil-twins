@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
-import { useDownloads } from '../contexts/DownloadContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle, faPlay, faPause, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faPlay, faPause, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
   background-color: #181818;
