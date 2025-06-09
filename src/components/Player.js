@@ -6,7 +6,7 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { useDownloads } from '../contexts/DownloadContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle, faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
   background-color: #181818;
@@ -30,7 +30,7 @@ const TrackInfoContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 180px;
+  min-width: 0;
   cursor: pointer;
   overflow: hidden;
 `;
@@ -100,13 +100,12 @@ const PlayerControlsContainer = styled.div`
   }
 `;
 
-// Controls specifically for mobile view
 const MobileControls = styled.div`
     display: none;
     @media (max-width: 768px) {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 16px;
     }
 `;
 
@@ -160,7 +159,7 @@ const Player = () => {
   const handlePause = () => setIsPlaying(false);
   const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
 
-  const isCurrentSongDownloaded = currentTrack && downloadedSongIds.has(currentTrack.id);
+  const isCurrentSongDownloaded = currentTrack ? downloadedSongIds.has(currentTrack.id) : false;
 
   return (
     <>
@@ -177,11 +176,10 @@ const Player = () => {
           </TrackDetails>
         </TrackInfoContainer>
         
-        {/* Full desktop player */}
         <PlayerControlsContainer>
           <AudioPlayer
             ref={audioRef}
-            autoPlayAfterSrcChange={false}
+            autoPlayAfterSrcChange
             src={currentTrack ? currentTrack.url : ""}
             onPlay={handlePlay}
             onPause={handlePause}
@@ -196,20 +194,15 @@ const Player = () => {
           />
         </PlayerControlsContainer>
         
-        {/* Mobile-only controls */}
         <MobileControls>
-            <CustomControlButton onClick={handleLyricsClick} disabled={!currentTrack}>
-                <FontAwesomeIcon icon={faQuoteRight} />
-            </CustomControlButton>
             <CustomControlButton onClick={() => currentTrack && downloadSong(currentTrack)} disabled={!currentTrack || isCurrentSongDownloaded}>
                 <FontAwesomeIcon icon={isCurrentSongDownloaded ? faCheckCircle : faDownload} />
             </CustomControlButton>
-             <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.8rem', color: 'white'}}>
-                <FontAwesomeIcon icon={isPlaying ? 'pause' : 'play'} />
+            <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.8rem', color: 'white'}}>
+                <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
             </CustomControlButton>
         </MobileControls>
 
-        {/* Desktop-only extra controls */}
         <CustomControlsContainer>
             <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle" disabled={!currentTrack}>
                 <FontAwesomeIcon icon={faRandom} />
@@ -221,7 +214,6 @@ const Player = () => {
               <FontAwesomeIcon icon={isPlayerViewOpen ? faCompress : faExpand} />
             </CustomControlButton>
         </CustomControlsContainer>
-
       </PlayerBarContainer>
 
       {isLyricsOpen && currentTrack && (
