@@ -147,16 +147,6 @@ const Player = () => {
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
-  useEffect(() => {
-    if (audioRef.current && audioRef.current.audio.current) {
-        if (isPlaying && currentTrack) {
-            audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
-        } else {
-            audioRef.current.audio.current.pause();
-        }
-    }
-  }, [isPlaying, currentTrack, audioRef]);
-
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
   
