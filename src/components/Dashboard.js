@@ -3,10 +3,11 @@ import styled from 'styled-components';
 import { Outlet } from 'react-router-dom';
 
 import { PlayerProvider, usePlayer } from '../contexts/PlayerContext';
+import { PlaylistProvider } from '../contexts/PlaylistContext'; // <-- Import the new provider
 import Sidebar from './Sidebar';
 import Player from './Player';
 import PlayerView from './PlayerView';
-import Header from './Header'; // <-- Import the new Header
+import Header from './Header';
 
 const AppLayout = styled.div`
   height: 100vh;
@@ -20,7 +21,6 @@ const AppLayout = styled.div`
   overflow: hidden;
 
   @media (max-width: 768px) {
-    /* On mobile, the sidebar is a fixed overlay, so we simplify the grid */
     grid-template-columns: 1fr;
     grid-template-areas:
       "main"
@@ -40,7 +40,6 @@ const SidebarWrapper = styled.div`
   grid-area: sidebar;
   
   @media (max-width: 768px) {
-    /* This wrapper is part of the grid, but the sidebar inside becomes fixed */
     grid-area: unset;
   }
 `;
@@ -67,7 +66,6 @@ const AppContent = () => {
 
                 <MainContent>
                     <Header onMenuClick={() => setIsMobileNavOpen(true)} />
-                    {/* Nested pages from App.js will render here */}
                     <Outlet />
                 </MainContent>
 
@@ -83,7 +81,9 @@ const AppContent = () => {
 const Dashboard = () => {
   return (
     <PlayerProvider>
-      <AppContent />
+      <PlaylistProvider> {/* <-- Wrap the content with the PlaylistProvider */}
+        <AppContent />
+      </PlaylistProvider>
     </PlayerProvider>
   );
 };
