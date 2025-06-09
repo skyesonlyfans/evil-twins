@@ -11,10 +11,11 @@ import Header from './Header';
 
 // The main grid for the entire application view
 const AppLayout = styled.div`
-  height: 100vh;
+  /* Using 100dvh (dynamic viewport height) instead of 100vh */
+  /* This ensures the layout respects mobile browser UI like the bottom nav bar */
+  height: 100dvh; 
   width: 100vw;
   display: grid;
-  // The player has a fixed height, the main content takes the rest
   grid-template-rows: 1fr auto; 
   grid-template-columns: auto 1fr;
   grid-template-areas:
