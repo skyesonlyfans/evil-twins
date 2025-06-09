@@ -7,74 +7,102 @@ import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom, faQuoteRight } from '@fortawesome/free-solid-svg-icons';
 
-const PlayerContainer = styled.div`
-  .rhap_container {
-    background-color: ${({ theme }) => theme.colors.surface};
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
-    padding: 10px 20px;
-  }
+// This is the main container for the entire bottom bar
+const PlayerBarContainer = styled.div`
+  background-color: ${({ theme }) => theme.colors.surface};
+  border-top: 1px solid #282828;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  padding: 0 20px;
+  height: 90px;
+  width: 100%;
 
-  .rhap_header {
-    font-size: 1rem;
-    font-weight: bold;
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  .rhap_time, .rhap_current-time, .rhap_total-time {
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 0.9rem;
-  }
-
-  .rhap_progress-indicator,
-  .rhap_volume-indicator {
-    background: ${({ theme }) => theme.colors.primary};
-  }
-
-  .rhap_progress-filled {
-    background-color: ${({ theme }) => theme.colors.text};
-  }
-  .rhap_progress-bar:hover .rhap_progress-filled {
-    background-color: ${({ theme }) => theme.colors.primary};
-  }
-
-  .rhap_main-controls-button,
-  .rhap_volume-button,
-  .rhap_repeat-button {
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 1.2rem;
-    transition: all 0.2s;
-  }
-
-  .rhap_main-controls-button:hover,
-  .rhap_volume-button:hover,
-  .rhap_repeat-button:hover {
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  .rhap_play-pause-button {
-    font-size: 2.5rem;
-    width: 50px;
-    height: 50px;
-    color: ${({ theme }) => theme.colors.primary};
-  }
-
-  .rhap_play-pause-button:hover {
-    color: ${({ theme }) => theme.colors.primaryDark};
-  }
-
-  /* Custom Controls Wrapper */
-  .rhap_additional-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 10px;
   }
 `;
 
-const CustomControls = styled.div`
+// Left side: Track Info
+const TrackInfoContainer = styled.div`
   display: flex;
   align-items: center;
+  gap: 14px;
+  min-width: 180px;
+
+  @media (max-width: 768px) {
+    display: none; // Hide on mobile for a simpler player
+  }
+`;
+
+const AlbumArt = styled.img`
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+`;
+
+const TrackDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const TrackTitle = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 500;
+`;
+
+const TrackArtist = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 0.8rem;
+`;
+
+
+// Center: Player controls
+const PlayerControlsContainer = styled.div`
+  width: 100%;
+  max-width: 722px;
+  justify-self: center;
+
+  .rhap_container {
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+  .rhap_header, .rhap_progress-section, .rhap_controls-section, .rhap_main-controls, .rhap_additional-controls, .rhap_volume-controls {
+    background: transparent;
+  }
+  .rhap_header { display: none; } // We handle the header in TrackInfo
+  
+  /* All other player styles from before... */
+  .rhap_time {
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 0.8rem;
+  }
+  .rhap_progress-indicator, .rhap_volume-indicator {
+    background: ${({ theme }) => theme.colors.primary};
+  }
+  .rhap_progress-filled { background-color: #fff; }
+  .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
+  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button {
+    color: ${({ theme }) => theme.colors.textSecondary};
+    font-size: 1rem;
+    &:hover { color: #fff; }
+  }
+  .rhap_play-pause-button {
+    color: #fff;
+    font-size: 2rem;
+    &:hover { color: #fff; }
+  }
+`;
+
+// Right side: Custom Controls
+const CustomControlsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 20px;
-  margin-right: 15px; /* Margin for controls on the left */
 `;
 
 const CustomControlButton = styled.button`
@@ -104,60 +132,60 @@ const Player = () => {
     toggleShuffle,
   } = usePlayer();
 
-  // This effect syncs our context's play state WITH the player's actual state
   useEffect(() => {
     if (playerRef.current && playerRef.current.audio.current) {
-        if (isPlaying) {
+        if (isPlaying && currentTrack) {
             playerRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
         } else {
             playerRef.current.audio.current.pause();
         }
     }
-  }, [isPlaying, currentTrack]); // Re-run when the track changes or play state is toggled
+  }, [isPlaying, currentTrack]);
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
-
-  const handleLyricsClick = () => {
-    if (currentTrack) {
-      setIsLyricsOpen(true);
-    }
-  };
+  const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
   
   return (
     <>
-      <PlayerContainer>
-        <AudioPlayer
-          ref={playerRef}
-          autoPlayAfterSrcChange={true}
-          src={currentTrack ? currentTrack.url : ""}
-          header={currentTrack ? `${currentTrack.title} - ${currentTrack.artist}`: "Select a song to play"}
-          
-          // Let the component handle its own state, but report changes up to our context
-          onPlay={handlePlay}
-          onPause={handlePause}
-          
-          // Wire up controls to context functions
-          onClickNext={playNext}
-          onClickPrevious={playPrevious}
-          onEnded={playNext} // Automatically play next song when one ends
+      <PlayerBarContainer>
+        <TrackInfoContainer>
+          {currentTrack && (
+            <>
+              <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
+              <TrackDetails>
+                <TrackTitle>{currentTrack.title}</TrackTitle>
+                <TrackArtist>{currentTrack.artist}</TrackArtist>
+              </TrackDetails>
+            </>
+          )}
+        </TrackInfoContainer>
+        
+        <PlayerControlsContainer>
+          <AudioPlayer
+            ref={playerRef}
+            autoPlayAfterSrcChange={false}
+            src={currentTrack ? currentTrack.url : ""}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onClickNext={playNext}
+            onClickPrevious={playPrevious}
+            onEnded={playNext}
+            showSkipControls={true}
+            showJumpControls={false}
+          />
+        </PlayerControlsContainer>
 
-          customControlsSection={[
-              <CustomControls key="custom-controls">
-                  <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-                      <FontAwesomeIcon icon={faRandom} />
-                  </CustomControlButton>
-                  <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
-                      <FontAwesomeIcon icon={faQuoteRight} />
-                  </CustomControlButton>
-              </CustomControls>
-          ]}
-          
-          showSkipControls={true}
-          showJumpControls={false}
-          layout="stacked-reverse"
-        />
-      </PlayerContainer>
+        <CustomControlsContainer>
+            <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
+                <FontAwesomeIcon icon={faRandom} />
+            </CustomControlButton>
+            <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
+                <FontAwesomeIcon icon={faQuoteRight} />
+            </CustomControlButton>
+        </CustomControlsContainer>
+
+      </PlayerBarContainer>
 
       {isLyricsOpen && currentTrack && (
         <LyricsModal 
