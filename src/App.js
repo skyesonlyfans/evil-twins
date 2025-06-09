@@ -1,63 +1,42 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import styled, { createGlobalStyle } from 'styled-components';
+import { ThemeProvider } from 'styled-components';
+
 import { AuthProvider } from './contexts/AuthContext';
+import { GlobalStyle, theme } from './styles/GlobalStyle';
+
 import PrivateRoute from './components/PrivateRoute';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
-
-// Global styles for the Spotify-esque look
-const GlobalStyle = createGlobalStyle`
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html, body, #root {
-    height: 100%;
-    width: 100%;
-  }
-
-  body {
-    background-color: #000;
-    color: #fff;
-    font-family: 'Montserrat', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
-`;
-
-const AppContainer = styled.div`
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-`;
+import Albums from './pages/Albums';
+import AlbumDetail from './pages/AlbumDetail';
+import Search from './pages/Search';
+import Library from './pages/Library';
 
 function App() {
   return (
-    <AppContainer>
+    <ThemeProvider theme={theme}>
       <GlobalStyle />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route 
-            path="/*"
+            path="/"
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
-            } 
-          />
+            }
+          >
+            {/* These are the nested pages that will appear inside the Dashboard */}
+            <Route index element={<Albums />} />
+            <Route path="album/:albumId" element={<AlbumDetail />} />
+            <Route path="search" element={<Search />} />
+            <Route path="library" element={<Library />} />
+          </Route>
         </Routes>
       </AuthProvider>
-    </AppContainer>
+    </ThemeProvider>
   );
 }
 
