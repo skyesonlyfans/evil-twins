@@ -5,9 +5,11 @@ import axios from 'axios';
 const GENIUS_ACCESS_TOKEN = 'RikXcu5kcsziNp_lflxoFjTc40ocgtyw14_Jdc44vXRzB3kgL89rmXwcAgc5_2r3';
 // -----------------------------------------------------------------------------
 
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+// Switched to a different CORS proxy for better reliability
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/'; 
 const API_BASE_URL = 'https://api.genius.com';
 
+// ... rest of the file remains the same
 /**
  * Searches for a song on Genius by title and artist.
  * @returns {Promise<string|null>} The URL of the best match, or null.
@@ -74,7 +76,7 @@ export const findBestGeniusUrl = async (song) => {
 export const getLyrics = async (url) => {
     if (!url) return null;
     try {
-        const proxiedUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+        const proxiedUrl = `${CORS_PROXY}${url}`;
         const { data: html } = await axios.get(proxiedUrl);
         
         const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -87,7 +89,6 @@ export const getLyrics = async (url) => {
             lyrics += container.innerHTML;
         });
 
-        // Remove links and ads from the lyrics html
         lyrics = lyrics.replace(/<a[^>]*>|<\/a>/g, "");
         
         return lyrics.trim() || null;
