@@ -7,7 +7,6 @@ import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom, faQuoteRight, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
-// The container is no longer position: fixed
 const PlayerBarContainer = styled.div`
   background-color: #181818;
   border-top: 1px solid #282828;
@@ -21,12 +20,10 @@ const PlayerBarContainer = styled.div`
   @media (max-width: 768px) {
     grid-template-columns: 1fr auto;
     padding: 8px 16px;
-    height: auto; // Auto height for mobile
+    height: auto;
     min-height: 70px;
   }
 `;
-
-// Removed the MainLayout wrapper from this file
 
 const TrackInfoContainer = styled.div`
   display: flex;
@@ -79,7 +76,6 @@ const PlayerControlsContainer = styled.div`
   .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
   .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
 
-  // Hides unnecessary controls on mobile for a cleaner look
   @media (max-width: 768px) {
     .rhap_progress-section, .rhap_volume-controls, .rhap_additional-controls, .rhap_main-controls-button[aria-label="Previous"], .rhap_main-controls-button[aria-label="Next"] {
       display: none;
@@ -101,7 +97,21 @@ const CustomControlsContainer = styled.div`
   gap: 20px;
   
   @media (max-width: 768px) {
-    display: none; // Hide on mobile as they are in the PlayerView
+    display: none;
+  }
+`;
+
+// THIS WAS THE MISSING PIECE
+const CustomControlButton = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.colors.textSecondary};
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text};
   }
 `;
 
@@ -129,7 +139,7 @@ const Player = () => {
   const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
   
   if (!currentTrack) {
-      return null; // Don't render the player if there's no track
+      return null;
   }
 
   return (
