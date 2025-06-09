@@ -1,10 +1,98 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { css } from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
-// Corrected import: Only 'getLyrics' is needed now.
-import { getLyrics } from '../services/genius';
+import { getLyrics } from '../services/lyrics';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
+
+// ... (styled components are unchanged)
+
+const LyricsModal = ({ song, onClose }) => {
+  const [lyrics, setLyrics] = useState(null);
+  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { currentTime, duration } = usePlayer();
+  const activeLineRef = useRef(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    if (!song) return;
+
+    const fetchLyricsData = async () => {
+      setIsLoading(true);
+      setLyrics(null);
+      try {
+        const fetchedLyrics = await getLyrics(song);
+        setLyrics(fetchedLyrics);
+      } catch (error) {
+        console.error("Lyrics modal error:", error);
+        setLyrics(null);
+      } finally {
+        // This ensures the loading state is always turned off
+        setIsLoading(false);
+      }
+    };
+
+    fetchLyricsData();
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [song]);
+
+  useEffect(() => {
+    if (lyrics?.synced) {
+      const activeLine = lyrics.synced.findIndex((line, index) => {
+        const nextLine = lyrics.synced[index + 1];
+        return currentTime >= line.time && (nextLine ? currentTime < nextLine.time : true);
+      });
+      setCurrentLineIndex(activeLine);
+    }
+  }, [currentTime, lyrics]);
+
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentLineIndex]);
+
+  const renderLyrics = () => {
+    if (isLoading) return <LyricLine>Loading lyrics...</LyricLine>;
+    if (!lyrics || (!lyrics.synced && !lyrics.plain)) return <LyricLine>Lyrics not found.</LyricLine>;
+
+    if (lyrics.synced && lyrics.synced.length > 0) {
+      return lyrics.synced.map((line, index) => (
+        <LyricLine key={`${line.time}-${index}`} $isActive={index === currentLineIndex} ref={index === currentLineIndex ? activeLineRef : null}>
+          {line.text}
+        </LyricLine>
+      ));
+    }
+    
+    return lyrics.plain.split('\n').map((line, index) => <LyricLine key={index}>{line}</LyricLine>);
+  };
+
+  return (
+    <ModalOverlay onClick={onClose}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
+        <CloseButton onClick={onClose} aria-label="Close">
+            <FontAwesomeIcon icon={faTimes} />
+        </CloseButton>
+        <ModalHeader>
+            <SongTitle>{song.title}</SongTitle>
+            <SongArtist>{song.artist}</SongArtist>
+        </ModalHeader>
+        <LyricsContainer>
+          {renderLyrics()}
+        </LyricsContainer>
+      </ModalContent>
+    </ModalOverlay>
+  );
+};
+
+export default LyricsModal;
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -93,94 +181,3 @@ const LyricLine = styled.p`
         transform: scale(1.05);
     `}
 `;
-
-const LyricsModal = ({ song, onClose }) => {
-  const [lyrics, setLyrics] = useState([]);
-  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const { currentTime, duration } = usePlayer();
-  const activeLineRef = useRef(null);
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    if (!song) return;
-
-    const fetchLyricsData = async () => {
-      setIsLoading(true);
-      setError(null);
-      setLyrics([]);
-      try {
-        // Corrected logic: Call getLyrics directly with the song object
-        const textLyrics = await getLyrics(song);
-        
-        if (textLyrics && !textLyrics.toLowerCase().includes("could not be found")) {
-            const lines = textLyrics.split('\n').filter(line => line.trim() !== '');
-            setLyrics(lines);
-        } else {
-           setError(textLyrics); // Show the error message from the API
-           setLyrics([]);
-        }
-      } catch (err) {
-        setError('An error occurred while fetching lyrics.');
-        setLyrics([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLyricsData();
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [song]);
-
-  useEffect(() => {
-    if (duration > 0 && lyrics.length > 0) {
-      const progress = currentTime / duration;
-      const lineIndex = Math.floor(progress * lyrics.length);
-      setCurrentLineIndex(lineIndex);
-    }
-  }, [currentTime, duration, lyrics]);
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
-  }, [currentLineIndex]);
-
-  return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={onClose} aria-label="Close">
-            <FontAwesomeIcon icon={faTimes} />
-        </CloseButton>
-        <ModalHeader>
-            <SongTitle>{song.title}</SongTitle>
-            <SongArtist>{song.artist}</SongArtist>
-        </ModalHeader>
-        
-        <LyricsContainer>
-            {isLoading && <LyricLine>Loading lyrics...</LyricLine>}
-            {error && <LyricLine>{error}</LyricLine>}
-            {!isLoading && !error && lyrics.map((line, index) => (
-                <LyricLine
-                  key={index}
-                  $isActive={index === currentLineIndex}
-                  ref={index === currentLineIndex ? activeLineRef : null}
-                >
-                  {line}
-                </LyricLine>
-              ))
-            }
-        </LyricsContainer>
-      </ModalContent>
-    </ModalOverlay>
-  );
-};
-
-export default LyricsModal;
