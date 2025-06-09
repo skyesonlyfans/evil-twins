@@ -26,7 +26,7 @@ const PlayerView = () => {
       setIsLoadingLyrics(true);
       setLyrics(null);
       try {
-        const fetchedLyrics = await getLyrics(currentTrack);
+        const fetchedLyrics = await getLyrics(currentTrack, duration);
         setLyrics(fetchedLyrics);
       } catch (error) {
         console.error("Lyrics component error:", error);
@@ -38,7 +38,7 @@ const PlayerView = () => {
     };
     
     fetchLyricsData();
-  }, [currentTrack]);
+  }, [currentTrack, duration]);
   
   // ... (The rest of the logic and JSX is correct from the previous step)
   useEffect(() => {
