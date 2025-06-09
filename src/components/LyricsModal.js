@@ -23,7 +23,7 @@ const LyricsModal = ({ song, onClose }) => {
       setIsLoading(true);
       setLyrics(null);
       try {
-        const fetchedLyrics = await getLyrics(song);
+        const fetchedLyrics = await getLyrics(song, duration);
         setLyrics(fetchedLyrics);
       } catch (error) {
         console.error("Lyrics modal error:", error);
@@ -38,7 +38,7 @@ const LyricsModal = ({ song, onClose }) => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [song]);
+  }, [song, duration]);
 
   useEffect(() => {
     if (lyrics?.synced) {
