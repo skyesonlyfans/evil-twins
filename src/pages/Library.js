@@ -4,6 +4,7 @@ import { useDownloads } from '../contexts/DownloadContext';
 import { usePlayer } from '../contexts/PlayerContext';
 import { getDownloadedSongs } from '../utils/db';
 import ContextMenu from '../components/ContextMenu';
+import AddToPlaylistModal from '../components/AddToPlaylistModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
@@ -95,6 +96,7 @@ const DeleteButton = styled(MenuButton)`
 const Library = () => {
   const [localSongs, setLocalSongs] = useState([]);
   const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
+  const [isAddToPlaylistModalOpen, setAddToPlaylistModalOpen] = useState(false);
 
   const { downloadedSongIds, deleteSong } = useDownloads();
   const { playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
@@ -115,26 +117,33 @@ const Library = () => {
   const handleOpenMenu = (event, song) => {
     event.preventDefault();
     event.stopPropagation();
-    setMenuState({
-      isOpen: true,
-      x: event.pageX,
-      y: event.pageY,
-      song: song,
-    });
+    setMenuState({ isOpen: true, x: event.pageX, y: event.pageY, song: song });
   };
 
   const handleCloseMenu = () => {
     setMenuState({ ...menuState, isOpen: false });
   };
   
+  const handleAddToPlaylistClick = () => {
+    setAddToPlaylistModalOpen(true);
+  };
+  
   const menuItems = menuState.song ? [
     { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
     { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
+    { label: 'Add to Playlist', onClick: handleAddToPlaylistClick },
   ] : [];
 
   return (
     <PageContainer>
       <ContextMenu isOpen={menuState.isOpen} onClose={handleCloseMenu} position={menuState} menuItems={menuItems} />
+      {isAddToPlaylistModalOpen && (
+        <AddToPlaylistModal 
+          isOpen={isAddToPlaylistModalOpen}
+          onClose={() => setAddToPlaylistModalOpen(false)}
+          songToAdd={menuState.song}
+        />
+      )}
       <PageTitle>Your Library</PageTitle>
       {localSongs.length === 0 ? (
         <EmptyLibraryMessage>You haven't downloaded any songs yet. Find a song and click the download icon to save it for offline listening.</EmptyLibraryMessage>
