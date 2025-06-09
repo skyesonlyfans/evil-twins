@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { usePlaylists } from '../contexts/PlaylistContext'; // <-- Import playlists hook
+import { usePlaylists } from '../contexts/PlaylistContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faSearch, faBook, faSignOutAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
-// We will create this modal in the next step
-// import CreatePlaylistModal from './CreatePlaylistModal'; 
+import CreatePlaylistModal from './CreatePlaylistModal'; // <-- Uncommented this import
 
 const Backdrop = styled.div`
   position: fixed;
@@ -30,7 +29,7 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 24px;
-  overflow-y: hidden; /* Hide vertical scroll on the container itself */
+  overflow-y: hidden;
   
   @media (max-width: 768px) {
     position: fixed;
@@ -120,7 +119,6 @@ const CreatePlaylistButton = styled.button`
 const PlaylistScrollArea = styled.div`
   flex-grow: 1;
   overflow-y: auto;
-  /* Custom scrollbar for this specific area */
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb { background-color: #434343; border-radius: 4px; }
@@ -138,7 +136,7 @@ const LogoutButton = styled.button`
   color: ${({ theme }) => theme.colors.textSecondary};
   transition: color 0.2s ease-in-out;
   padding: 12px 0;
-  margin-top: 16px; /* Add some space above the logout button */
+  margin-top: 16px;
 
   &:hover { color: ${({ theme }) => theme.colors.text}; }
 
@@ -149,7 +147,7 @@ const Sidebar = ({ isMobileOpen, onClose }) => {
   const { logout } = useAuth();
   const { playlists, loadingPlaylists } = usePlaylists();
   const navigate = useNavigate();
-  // const [isModalOpen, setIsModalOpen] = useState(false); // We'll use this in the next step
+  const [isModalOpen, setIsModalOpen] = useState(false); // <-- Uncommented this state
 
   async function handleLogout() {
     await logout();
@@ -158,7 +156,7 @@ const Sidebar = ({ isMobileOpen, onClose }) => {
 
   return (
     <>
-      {/* <CreatePlaylistModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} /> */}
+      <CreatePlaylistModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} /> {/* <-- Uncommented this component */}
       {isMobileOpen && <Backdrop onClick={onClose} />}
       <SidebarContainer $isMobileOpen={isMobileOpen}>
         <SidebarLogo>Evil Twins</SidebarLogo>
@@ -176,7 +174,7 @@ const Sidebar = ({ isMobileOpen, onClose }) => {
         <Divider />
         <PlaylistsHeader>
             <PlaylistsTitle>Playlists</PlaylistsTitle>
-            <CreatePlaylistButton aria-label="Create new playlist" /* onClick={() => setIsModalOpen(true)} */>
+            <CreatePlaylistButton aria-label="Create new playlist" onClick={() => setIsModalOpen(true)}> {/* <-- Uncommented onClick */}
                 <FontAwesomeIcon icon={faPlus} />
             </CreatePlaylistButton>
         </PlaylistsHeader>
