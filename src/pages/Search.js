@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMusic } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   padding: 24px 32px;
@@ -42,7 +40,7 @@ const ResultsContainer = styled.div`
 
 const SongRow = styled.div`
   display: grid;
-  grid-template-columns: 50px 1fr auto;
+  grid-template-columns: 50px 1fr;
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
@@ -56,15 +54,11 @@ const SongRow = styled.div`
   }
 `;
 
-const SongCover = styled.div`
+const SongCover = styled.img`
   width: 40px;
   height: 40px;
-  background-color: ${({ theme }) => theme.colors.surfaceHighlight};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.colors.textSecondary};
   border-radius: 4px;
+  object-fit: cover;
 `;
 
 const SongInfo = styled.div`
@@ -103,8 +97,6 @@ const Search = () => {
   }, [query, allSongs]);
 
   const handlePlayTrack = (songToPlay) => {
-    // To play a single song from search, we can treat the entire library as the queue
-    // and provide the index of the song that was clicked.
     const songIndex = allSongs.findIndex(song => song.id === songToPlay.id);
     if (songIndex !== -1) {
       playAlbum(allSongs, songIndex);
@@ -128,9 +120,7 @@ const Search = () => {
             onClick={() => handlePlayTrack(song)}
             $isPlaying={currentTrack?.id === song.id}
           >
-            <SongCover>
-              <FontAwesomeIcon icon={faMusic} />
-            </SongCover>
+            <SongCover src={song.cover} alt={song.title} />
             <SongInfo>
               <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
               <SongArtist>{song.artist}</SongArtist>
