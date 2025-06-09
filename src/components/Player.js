@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
+import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 
@@ -85,6 +86,7 @@ const CustomControlButton = styled.button`
 `;
 
 const Player = () => {
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const {
     currentTrack,
     isPlaying,
@@ -98,56 +100,52 @@ const Player = () => {
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
 
-  // Placeholder for lyrics functionality
   const handleLyricsClick = () => {
     if (currentTrack) {
-      alert(`Lyrics for "${currentTrack.title}" will be implemented soon!`);
+      setIsLyricsOpen(true);
     }
   };
   
-  if (!currentTrack) {
-    return (
-        <PlayerContainer>
-             {/* Render an empty player for consistent layout */}
-            <AudioPlayer layout="stacked-reverse" style={{ boxShadow: 'none' }}/>
-        </PlayerContainer>
-    );
-  }
-
   return (
-    <PlayerContainer>
-      <AudioPlayer
-        autoPlayAfterSrcChange={true}
-        src={currentTrack.url}
-        header={`${currentTrack.title} - ${currentTrack.artist}`}
-        
-        // Control play/pause state via context
-        playing={isPlaying}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        
-        // Wire up controls to context functions
-        onClickNext={playNext}
-        onClickPrevious={playPrevious}
-        onEnded={playNext} // Automatically play next song when one ends
+    <>
+      <PlayerContainer>
+        <AudioPlayer
+          autoPlayAfterSrcChange={true}
+          src={currentTrack ? currentTrack.url : ""}
+          header={currentTrack ? `${currentTrack.title} - ${currentTrack.artist}`: "Select a song to play"}
+          
+          playing={isPlaying}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          
+          onClickNext={playNext}
+          onClickPrevious={playPrevious}
+          onEnded={playNext}
 
-        // Custom controls for shuffle and lyrics
-        customControlsSection={[
-            <CustomControls key="custom-controls">
-                <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-                    <FontAwesomeIcon icon={faRandom} />
-                </CustomControlButton>
-                <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
-                    <FontAwesomeIcon icon={faFileAlt} />
-                </CustomControlButton>
-            </CustomControls>
-        ]}
-        
-        showSkipControls={true}
-        showJumpControls={false}
-        layout="stacked-reverse"
-      />
-    </PlayerContainer>
+          customControlsSection={[
+              <CustomControls key="custom-controls">
+                  <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
+                      <FontAwesomeIcon icon={faRandom} />
+                  </CustomControlButton>
+                  <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
+                      <FontAwesomeIcon icon={faFileAlt} />
+                  </CustomControlButton>
+              </CustomControls>
+          ]}
+          
+          showSkipControls={true}
+          showJumpControls={false}
+          layout="stacked-reverse"
+        />
+      </PlayerContainer>
+
+      {isLyricsOpen && currentTrack && (
+        <LyricsModal 
+            song={currentTrack} 
+            onClose={() => setIsLyricsOpen(false)} 
+        />
+      )}
+    </>
   );
 };
 
