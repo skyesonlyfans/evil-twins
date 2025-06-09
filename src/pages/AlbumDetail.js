@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { albums } from '../db/songs';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useDownloads } from '../contexts/DownloadContext';
 import ContextMenu from '../components/ContextMenu';
-import AddToPlaylistModal from '../components/AddToPlaylistModal'; // <-- Import the new modal
+import AddToPlaylistModal from '../components/AddToPlaylistModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faDownload, faCheckCircle, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faDownload, faCheckCircle, faEllipsisV, faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   color: ${({ theme }) => theme.colors.text};
@@ -25,18 +25,42 @@ const AlbumHeader = styled.div`
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding: 24px 16px;
   }
 `;
+
+const BackButton = styled.button`
+  background: rgba(0,0,0,0.3);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  position: absolute;
+  top: 24px;
+  left: 16px;
+  display: none; // Hidden by default
+  
+  @media (max-width: 768px) {
+    display: inline-flex; // Visible on mobile
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
 
 const AlbumCover = styled.img`
   width: 232px;
   height: 232px;
   object-fit: cover;
   box-shadow: 0 4px 60px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
-    width: 200px;
-    height: 200px;
+    width: 60vw;
+    height: 60vw;
   }
 `;
 
@@ -50,17 +74,14 @@ const AlbumType = styled.p`
   font-size: 0.875rem;
   font-weight: bold;
   text-transform: uppercase;
+  margin-top: 1rem;
 `;
 
 const AlbumTitle = styled.h1`
-  font-size: 5rem;
+  font-size: clamp(2.5rem, 8vw, 5rem);
   font-weight: 900;
   margin: 0;
-  line-height: 1;
-
-  @media (max-width: 768px) {
-    font-size: 3rem;
-  }
+  line-height: 1.1;
 `;
 
 const AlbumMeta = styled.p`
@@ -161,11 +182,12 @@ const DownloadStatusIcon = styled(MenuButton)``;
 
 const AlbumDetail = () => {
   const { albumId } = useParams();
+  const navigate = useNavigate();
   const { playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
   const { downloadedSongIds, downloadAlbum, downloadSong, deleteSong } = useDownloads();
   
   const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
-  const [isAddToPlaylistModalOpen, setAddToPlaylistModalOpen] = useState(false); // <-- State for the new modal
+  const [isAddToPlaylistModalOpen, setAddToPlaylistModalOpen] = useState(false);
 
   const album = albums.find((a) => a.id === albumId);
 
@@ -186,7 +208,7 @@ const AlbumDetail = () => {
   const menuItems = menuState.song ? [
     { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
     { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
-    { label: 'Add to Playlist', onClick: handleAddToPlaylistClick }, // <-- New menu item
+    { label: 'Add to Playlist', onClick: handleAddToPlaylistClick },
   ] : [];
 
   if (!album) {
@@ -209,7 +231,9 @@ const AlbumDetail = () => {
       )}
 
       <AlbumHeader>
-        {/* ... (rest of JSX is unchanged) ... */}
+        <BackButton onClick={() => navigate(-1)}>
+            <FontAwesomeIcon icon={faChevronLeft} />
+        </BackButton>
         <AlbumCover src={album.cover} alt={`${album.title} cover`} />
         <AlbumInfo>
           <AlbumType>Album</AlbumType>
