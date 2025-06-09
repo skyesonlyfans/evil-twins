@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { css } from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
-import { getLyrics } from '../services/lyrics'; // Changed import
+import { getLyrics } from '../services/lyrics';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
 
-// ... (All styled-components remain the same)
+// ... (styled components are unchanged)
 
 const PlayerView = () => {
   const { 
@@ -13,7 +13,7 @@ const PlayerView = () => {
     setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
   } = usePlayer();
   
-  const [lyrics, setLyrics] = useState(null); // Can be {synced, plain}
+  const [lyrics, setLyrics] = useState(null);
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
 
@@ -21,16 +21,26 @@ const PlayerView = () => {
 
   useEffect(() => {
     if (!currentTrack) return;
+    
     const fetchLyricsData = async () => {
       setIsLoadingLyrics(true);
       setLyrics(null);
-      const fetchedLyrics = await getLyrics(currentTrack);
-      setLyrics(fetchedLyrics);
-      setIsLoadingLyrics(false);
+      try {
+        const fetchedLyrics = await getLyrics(currentTrack);
+        setLyrics(fetchedLyrics);
+      } catch (error) {
+        console.error("Lyrics component error:", error);
+        setLyrics(null); // Ensure lyrics are null on error
+      } finally {
+        // This 'finally' block ensures loading is always set to false
+        setIsLoadingLyrics(false);
+      }
     };
+    
     fetchLyricsData();
   }, [currentTrack]);
-
+  
+  // ... (The rest of the logic and JSX is correct from the previous step)
   useEffect(() => {
     if (lyrics?.synced) {
       const activeLine = lyrics.synced.findIndex((line, index) => {
@@ -60,7 +70,7 @@ const PlayerView = () => {
 
   const renderLyrics = () => {
       if(isLoadingLyrics) return <LyricLine>Loading lyrics...</LyricLine>;
-      if(!lyrics) return <LyricLine>Lyrics not found.</LyricLine>;
+      if(!lyrics || (!lyrics.synced && !lyrics.plain)) return <LyricLine>Lyrics not found.</LyricLine>;
 
       if(lyrics.synced && lyrics.synced.length > 0){
           return lyrics.synced.map((line, index) => (
@@ -108,9 +118,7 @@ const PlayerView = () => {
   );
 };
 
-export default PlayerView;
 
-// ... (All styled components remain unchanged)
 const PlayerViewOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -326,3 +334,4 @@ const LyricLine = styled.p`
         transform: scale(1.05);
     `}
 `;
+export default PlayerView;
