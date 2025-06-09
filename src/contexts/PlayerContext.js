@@ -1,11 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { albums } from '../db/songs';
 
 const PlayerContext = createContext();
 
 export const usePlayer = () => useContext(PlayerContext);
 
-// Helper function to shuffle an array
 const shuffleArray = (array) => {
   let currentIndex = array.length, randomIndex;
   while (currentIndex !== 0) {
@@ -19,10 +18,7 @@ const shuffleArray = (array) => {
 export const PlayerProvider = ({ children }) => {
   const [allSongs] = useState(() => 
     albums.flatMap(album => 
-      album.songs.map(song => ({
-        ...song,
-        cover: album.cover
-      }))
+      album.songs.map(song => ({ ...song, cover: album.cover }))
     )
   );
   
@@ -32,6 +28,11 @@ export const PlayerProvider = ({ children }) => {
   const [isShuffling, setIsShuffling] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPlayerViewOpen, setIsPlayerViewOpen] = useState(false);
+
+  // New state for time and progress
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef(null); // Ref to access the actual <audio> element
 
   const activeQueue = isShuffling ? shuffledQueue : queue;
   const currentTrack = activeQueue[currentTrackIndex] || null;
@@ -46,7 +47,7 @@ export const PlayerProvider = ({ children }) => {
     if (allSongs.length > 0 && queue.length === 0) {
         setQueue(allSongs);
         setCurrentTrackIndex(0);
-        setIsPlaying(false); // Don't autoplay on initial load
+        setIsPlaying(false);
     }
   }, [allSongs, queue]);
 
@@ -56,11 +57,10 @@ export const PlayerProvider = ({ children }) => {
         const parentAlbum = albums.find(a => a.songs.some(s => s.id === song.id));
         return { ...song, cover: parentAlbum.cover };
     });
-
     setQueue(songsWithCovers);
     setCurrentTrackIndex(startAtIndex);
     setIsPlaying(true);
-    setIsShuffling(false); // Always turn off shuffle when a new album is explicitly played
+    setIsShuffling(false);
   };
 
   const playAndShuffleAll = () => {
@@ -68,7 +68,7 @@ export const PlayerProvider = ({ children }) => {
     setQueue(globallyShuffled);
     setCurrentTrackIndex(0);
     setIsPlaying(true);
-    setIsShuffling(false); // The queue itself is shuffled, so we turn off the "mode"
+    setIsShuffling(false);
   };
   
   const handlePlayNext = () => {
@@ -85,13 +85,8 @@ export const PlayerProvider = ({ children }) => {
     setIsPlaying(true);
   };
 
-  const toggleShuffle = () => {
-    setIsShuffling(prev => !prev);
-  };
-
-  const togglePlayerView = () => {
-    setIsPlayerViewOpen(prev => !prev);
-  };
+  const toggleShuffle = () => setIsShuffling(prev => !prev);
+  const togglePlayerView = () => setIsPlayerViewOpen(prev => !prev);
   
   const addToQueue = (song) => {
     setQueue(prevQueue => [...prevQueue, song]);
@@ -101,7 +96,6 @@ export const PlayerProvider = ({ children }) => {
         newShuffled.splice(insertIndex, 0, song);
         return newShuffled;
     });
-    console.log(`${song.title} added to queue.`);
   };
 
   const playSongNext = (song) => {
@@ -114,25 +108,24 @@ export const PlayerProvider = ({ children }) => {
     const shuffledIndex = shuffledQueue.findIndex(item => item.id === currentTrack.id);
     newShuffledQueue.splice(shuffledIndex + 1, 0, song);
     setShuffledQueue(newShuffledQueue);
-    console.log(`${song.title} will play next.`);
+  };
+
+  const seek = (time) => {
+    if (audioRef.current && audioRef.current.audio.current) {
+        audioRef.current.audio.current.currentTime = time;
+        setCurrentTime(time);
+    }
   };
 
   const value = {
-    allSongs,
-    queue,
-    currentTrack,
-    isPlaying,
-    isShuffling,
-    isPlayerViewOpen,
-    togglePlayerView,
-    playAlbum,
-    playAndShuffleAll, // <-- Export the new function
-    playNext: handlePlayNext,
-    playPrevious: handlePlayPrevious,
-    setIsPlaying,
-    toggleShuffle,
-    addToQueue,
-    playSongNext
+    allSongs, queue, currentTrack, isPlaying, isShuffling,
+    isPlayerViewOpen, togglePlayerView, playAlbum, playAndShuffleAll,
+    playNext: handlePlayNext, playPrevious: handlePlayPrevious,
+    setIsPlaying, toggleShuffle, addToQueue, playSongNext,
+    // Export new time/progress state and functions
+    duration, setDuration,
+    currentTime, setCurrentTime,
+    audioRef, seek
   };
 
   return (
