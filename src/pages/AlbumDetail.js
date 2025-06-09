@@ -5,6 +5,7 @@ import { albums } from '../db/songs';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useDownloads } from '../contexts/DownloadContext';
 import ContextMenu from '../components/ContextMenu';
+import AddToPlaylistModal from '../components/AddToPlaylistModal'; // <-- Import the new modal
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faDownload, faCheckCircle, faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
@@ -124,7 +125,7 @@ const SongRow = styled.div`
 `;
 
 const SongInfoWrapper = styled.div`
-  display: contents; /* Allows children to be part of the parent grid */
+  display: contents;
   cursor: pointer;
 `;
 
@@ -162,33 +163,35 @@ const AlbumDetail = () => {
   const { albumId } = useParams();
   const { playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
   const { downloadedSongIds, downloadAlbum, downloadSong, deleteSong } = useDownloads();
+  
   const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
+  const [isAddToPlaylistModalOpen, setAddToPlaylistModalOpen] = useState(false); // <-- State for the new modal
 
   const album = albums.find((a) => a.id === albumId);
 
   const handleOpenMenu = (event, song) => {
     event.preventDefault();
     event.stopPropagation();
-    setMenuState({
-      isOpen: true,
-      x: event.pageX,
-      y: event.pageY,
-      song: song,
-    });
+    setMenuState({ isOpen: true, x: event.pageX, y: event.pageY, song: song });
   };
 
   const handleCloseMenu = () => {
     setMenuState({ ...menuState, isOpen: false });
   };
   
-  if (!album) {
-    return <PageContainer><AlbumTitle>Album not found</AlbumTitle></PageContainer>;
-  }
+  const handleAddToPlaylistClick = () => {
+    setAddToPlaylistModalOpen(true);
+  };
   
   const menuItems = menuState.song ? [
     { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
     { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
+    { label: 'Add to Playlist', onClick: handleAddToPlaylistClick }, // <-- New menu item
   ] : [];
+
+  if (!album) {
+    return <PageContainer><AlbumTitle>Album not found</AlbumTitle></PageContainer>;
+  }
 
   const handlePlayAlbum = () => playAlbum(album.songs);
   const handlePlayTrack = (trackIndex) => playAlbum(album.songs, trackIndex);
@@ -197,7 +200,16 @@ const AlbumDetail = () => {
   return (
     <PageContainer>
       <ContextMenu isOpen={menuState.isOpen} onClose={handleCloseMenu} position={menuState} menuItems={menuItems} />
+      {isAddToPlaylistModalOpen && (
+        <AddToPlaylistModal 
+          isOpen={isAddToPlaylistModalOpen}
+          onClose={() => setAddToPlaylistModalOpen(false)}
+          songToAdd={menuState.song}
+        />
+      )}
+
       <AlbumHeader>
+        {/* ... (rest of JSX is unchanged) ... */}
         <AlbumCover src={album.cover} alt={`${album.title} cover`} />
         <AlbumInfo>
           <AlbumType>Album</AlbumType>
@@ -219,17 +231,11 @@ const AlbumDetail = () => {
         {songsWithCovers.map((song, index) => {
           const isDownloaded = downloadedSongIds.has(song.id);
           return (
-            <SongRow 
-              key={song.id} 
-              $isPlaying={currentTrack?.id === song.id}
-            >
+            <SongRow key={song.id} $isPlaying={currentTrack?.id === song.id}>
               <SongInfoWrapper onClick={() => handlePlayTrack(index)}>
                 <SongIndex>{index + 1}</SongIndex>
-                <SongTitle $isPlaying={currentTrack?.id === song.id}>
-                  {song.title}
-                </SongTitle>
+                <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
               </SongInfoWrapper>
-              
               <DownloadStatusIcon
                 className="song-action-icon"
                 onClick={() => isDownloaded ? deleteSong(song) : downloadSong(song)}
@@ -237,7 +243,6 @@ const AlbumDetail = () => {
               >
                 <FontAwesomeIcon icon={isDownloaded ? faCheckCircle : faDownload} />
               </DownloadStatusIcon>
-
               <MenuButton className="song-action-icon" onClick={(e) => handleOpenMenu(e, song)}>
                   <FontAwesomeIcon icon={faEllipsisV} />
               </MenuButton>
