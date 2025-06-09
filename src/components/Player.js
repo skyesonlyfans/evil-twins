@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
@@ -146,6 +146,20 @@ const Player = () => {
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
+  useEffect(() => {
+    const audioEl = audioRef.current?.audio?.current;
+    if (!audioEl) return;
+
+    if (isPlaying) {
+      audioEl.play().catch(error => {
+        console.error("Playback failed:", error);
+        setIsPlaying(false);
+      });
+    } else {
+      audioEl.pause();
+    }
+  }, [isPlaying, currentTrack, audioRef, setIsPlaying]);
+
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
   
@@ -167,7 +181,8 @@ const Player = () => {
         <PlayerControlsContainer>
           <AudioPlayer
             ref={audioRef}
-            autoPlayAfterSrcChange
+            autoPlay={false}
+            autoPlayAfterSrcChange={false}
             src={currentTrack ? currentTrack.url : ""}
             onPlay={handlePlay}
             onPause={handlePause}
