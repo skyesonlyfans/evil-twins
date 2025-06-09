@@ -5,10 +5,10 @@ import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: #181818;
   border-top: 1px solid #282828;
   display: grid;
   grid-template-columns: 3fr 4fr 3fr;
@@ -16,20 +16,31 @@ const PlayerBarContainer = styled.div`
   padding: 0 20px;
   height: 90px;
   width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr auto;
-    grid-template-areas: 
-      "info controls"
-      "player player";
-    height: auto;
-    padding: 10px;
-    row-gap: 10px;
+    padding: 8px 16px;
+    height: 70px;
+  }
+`;
+
+const PlayerWrapper = styled.div`
+  grid-area: player;
+`;
+
+const MainLayout = styled.div`
+  /* This ensures there's space for the fixed player at the bottom */
+  padding-bottom: 90px;
+  @media (max-width: 768px) {
+    padding-bottom: 70px;
   }
 `;
 
 const TrackInfoContainer = styled.div`
-  grid-area: info;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -41,6 +52,10 @@ const AlbumArt = styled.img`
   width: 56px;
   height: 56px;
   border-radius: 4px;
+   @media (max-width: 768px) {
+    width: 48px;
+    height: 48px;
+  }
 `;
 
 const TrackDetails = styled.div`
@@ -63,14 +78,11 @@ const TrackArtist = styled.span`
 `;
 
 const PlayerControlsContainer = styled.div`
-  grid-area: player;
   width: 100%;
   max-width: 722px;
   justify-self: center;
-
+  
   .rhap_container { background-color: transparent; box-shadow: none; padding: 0; }
-  .rhap_header, .rhap_progress-section, .rhap_controls-section, .rhap_main-controls, .rhap_additional-controls, .rhap_volume-controls { background: transparent; }
-  .rhap_header { display: none; }
   .rhap_time { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 0.8rem; }
   .rhap_progress-indicator, .rhap_volume-indicator { background: ${({ theme }) => theme.colors.primary}; }
   .rhap_progress-bar-show-download { background-color: #555 !important; }
@@ -78,19 +90,19 @@ const PlayerControlsContainer = styled.div`
   .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
   .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
   .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
-  
+
   @media (max-width: 768px) {
-      .rhap_main-controls {
-          justify-content: center;
-      }
-      .rhap_additional-controls, .rhap_volume-controls {
-          display: none;
-      }
+    .rhap_progress-section, .rhap_volume-controls, .rhap_additional-controls {
+      display: none;
+    }
+    .rhap_main-controls {
+      justify-content: flex-end;
+      gap: 10px;
+    }
   }
 `;
 
 const CustomControlsContainer = styled.div`
-  grid-area: controls;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -113,73 +125,78 @@ const CustomControlButton = styled.button`
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
   const {
-    currentTrack, isPlaying, isShuffling, togglePlayerView, setIsPlaying,
-    playNext, playPrevious, toggleShuffle,
+    currentTrack, isPlaying, isShuffling, togglePlayerView, isPlayerViewOpen,
+    setIsPlaying, playNext, playPrevious, toggleShuffle,
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
   useEffect(() => {
     if (audioRef.current && audioRef.current.audio.current) {
-        if (isPlaying && currentTrack) {
-            audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
-        } else {
-            audioRef.current.audio.current.pause();
-        }
+      if (isPlaying && currentTrack) {
+        audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
+      } else {
+        audioRef.current.audio.current.pause();
+      }
     }
   }, [isPlaying, currentTrack, audioRef]);
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
   const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
-  
+
   return (
     <>
-      <PlayerBarContainer>
-        <TrackInfoContainer onClick={togglePlayerView}>
-          {currentTrack && (
-            <>
-              <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
-              <TrackDetails>
-                <TrackTitle>{currentTrack.title}</TrackTitle>
-                <TrackArtist>{currentTrack.artist}</TrackArtist>
-              </TrackDetails>
-            </>
-          )}
-        </TrackInfoContainer>
-        
-        <PlayerControlsContainer>
-          <AudioPlayer
-            ref={audioRef}
-            autoPlayAfterSrcChange={false}
-            src={currentTrack ? currentTrack.url : ""}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onClickNext={playNext}
-            onClickPrevious={playPrevious}
-            onEnded={playNext}
-            onListen={(e) => setCurrentTime(e.target.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.target.duration)}
-            listenInterval={100}
-            showSkipControls={true}
-            showJumpControls={false}
-          />
-        </PlayerControlsContainer>
+      <MainLayout>
+        <PlayerBarContainer>
+          <TrackInfoContainer onClick={togglePlayerView}>
+            {currentTrack && (
+              <>
+                <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
+                <TrackDetails>
+                  <TrackTitle>{currentTrack.title}</TrackTitle>
+                  <TrackArtist>{currentTrack.artist}</TrackArtist>
+                </TrackDetails>
+              </>
+            )}
+          </TrackInfoContainer>
+          
+          <PlayerControlsContainer>
+            <AudioPlayer
+              ref={audioRef}
+              autoPlayAfterSrcChange={false}
+              src={currentTrack ? currentTrack.url : ""}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onClickNext={playNext}
+              onClickPrevious={playPrevious}
+              onEnded={playNext}
+              onListen={(e) => setCurrentTime(e.target.currentTime)}
+              onLoadedMetadata={(e) => setDuration(e.target.duration)}
+              listenInterval={100}
+              showSkipControls={true}
+              showJumpControls={false}
+              layout="stacked-reverse"
+            />
+          </PlayerControlsContainer>
 
-        <CustomControlsContainer>
+          <CustomControlsContainer>
             <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-                <FontAwesomeIcon icon={faRandom} />
+              <FontAwesomeIcon icon={faRandom} />
             </CustomControlButton>
             <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
-                <FontAwesomeIcon icon={faQuoteRight} />
+              <FontAwesomeIcon icon={faQuoteRight} />
             </CustomControlButton>
-        </CustomControlsContainer>
-
-      </PlayerBarContainer>
+            <CustomControlButton onClick={togglePlayerView} aria-label="Toggle Player View">
+              <FontAwesomeIcon icon={isPlayerViewOpen ? faCompress : faExpand} />
+            </CustomControlButton>
+          </CustomControlsContainer>
+        </PlayerBarContainer>
+      </MainLayout>
 
       {isLyricsOpen && currentTrack && (
         <LyricsModal 
-            song={currentTrack} 
-            onClose={() => setIsLyricsOpen(false)} 
+          song={currentTrack} 
+          onClose={() => setIsLyricsOpen(false)} 
         />
       )}
     </>
