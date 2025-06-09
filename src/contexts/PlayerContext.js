@@ -22,7 +22,7 @@ export const PlayerProvider = ({ children }) => {
     albums.flatMap(album => 
       album.songs.map(song => ({
         ...song,
-        cover: album.cover // Inject the parent album's cover into each song object
+        cover: album.cover
       }))
     )
   );
@@ -32,24 +32,23 @@ export const PlayerProvider = ({ children }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(-1);
   const [isShuffling, setIsShuffling] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlayerViewOpen, setIsPlayerViewOpen] = useState(false); // State for full-screen player
 
   const activeQueue = isShuffling ? shuffledQueue : queue;
   const currentTrack = activeQueue[currentTrackIndex] || null;
 
   useEffect(() => {
-    // When the queue changes, update the shuffled queue
     if (queue.length > 0) {
         setShuffledQueue(shuffleArray([...queue]));
     }
   }, [queue]);
   
-  // Set a default queue on initial load
   useEffect(() => {
-    if (allSongs.length > 0) {
+    if (allSongs.length > 0 && queue.length === 0) {
         setQueue(allSongs);
         setCurrentTrackIndex(0);
     }
-  }, [allSongs]);
+  }, [allSongs, queue]);
 
   const playAlbum = (albumSongs, startAtIndex = 0) => {
     const songsWithCovers = albumSongs.map(song => {
@@ -80,11 +79,13 @@ export const PlayerProvider = ({ children }) => {
   const toggleShuffle = () => {
     setIsShuffling(prev => !prev);
   };
+
+  const togglePlayerView = () => {
+    setIsPlayerViewOpen(prev => !prev);
+  };
   
   const addToQueue = (song) => {
-    // Add to the end of the non-shuffled queue
     setQueue(prevQueue => [...prevQueue, song]);
-    // To make it available immediately in shuffle mode, add it to a random future position
     setShuffledQueue(prevShuffled => {
         const newShuffled = [...prevShuffled];
         const insertIndex = Math.floor(Math.random() * (newShuffled.length - currentTrackIndex)) + currentTrackIndex + 1;
@@ -95,13 +96,14 @@ export const PlayerProvider = ({ children }) => {
   };
 
   const playSongNext = (song) => {
-    // Insert song after the current track in both queues
     const newQueue = [...queue];
-    newQueue.splice(currentTrackIndex + 1, 0, song);
+    const originalIndex = queue.findIndex(item => item.id === currentTrack.id);
+    newQueue.splice(originalIndex + 1, 0, song);
     setQueue(newQueue);
 
     const newShuffledQueue = [...shuffledQueue];
-    newShuffledQueue.splice(currentTrackIndex + 1, 0, song);
+    const shuffledIndex = shuffledQueue.findIndex(item => item.id === currentTrack.id);
+    newShuffledQueue.splice(shuffledIndex + 1, 0, song);
     setShuffledQueue(newShuffledQueue);
     console.log(`${song.title} will play next.`);
   };
@@ -112,6 +114,8 @@ export const PlayerProvider = ({ children }) => {
     currentTrack,
     isPlaying,
     isShuffling,
+    isPlayerViewOpen,
+    togglePlayerView,
     playAlbum,
     playNext: handlePlayNext,
     playPrevious: handlePlayPrevious,
