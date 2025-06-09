@@ -814,4 +814,5 @@ export const albums = [
       { id: 'wrld-on-drugs-sessions-223', title: "You Don't Know Me", artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/WRLD%20On%20Drugs%20%28Sessions%29/You_Don%27t_Know_Me.mp3' },
       { id: 'wrld-on-drugs-sessions-224', title: 'Zombie', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/WRLD%20On%20Drugs%20%28Sessions%29/Zombie.mp3' }
     ]
-  }
+  } 
+]; 
