@@ -35,7 +35,7 @@ const parseLRC = (lrcText) => {
  * @param {object} song The song object with title, artist, albumName, and duration.
  * @returns {Promise<{synced: Array, plain: string}|null>} A promise that resolves to an object with synced and plain lyrics.
  */
-export const getLyrics = async (song) => {
+export const getLyrics = async (song, duration) => {
     if (!song) return null;
 
     try {
@@ -44,7 +44,7 @@ export const getLyrics = async (song) => {
                 track_name: song.title,
                 artist_name: song.artist,
                 album_name: song.albumName || '', // albumName is optional but helps
-                duration: Math.round(song.duration)
+                duration: Math.round(duration)
             }
         });
 
