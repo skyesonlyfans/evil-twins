@@ -18,8 +18,7 @@ export const albums = [
       { id: '9-9-9-sessions-10', title: 'Too Far', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/9%209%209%20%28Sessions%29/Too_Far.mp3' },
       { id: '9-9-9-sessions-11', title: 'Triple 9 (999) (V1)', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/9%209%209%20%28Sessions%29/Triple_9_%28999%29_%28V1%29.mp3' }
     ]
-  }
-],
+  },
   {
     id: 'affliction-sessions',
     title: 'Affliction (Sessions)',
@@ -43,9 +42,8 @@ export const albums = [
       { id: 'affliction-sessions-14', title: 'Work', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/Affliction%20%28Sessions%29/Work.mp3' },
       { id: 'affliction-sessions-15', title: 'Your Man (France) (Feat. 9DSVN)', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/Affliction%20%28Sessions%29/Your_Man_%28France%29_%28Feat._9DSVN%29.mp3' }
     ]
-  }
-],
-       {
+  },
+  {
     id: 'binge-drinking-music-sessions',
     title: 'Binge Drinking Music (Sessions)',
     artist: 'Juice WRLD',
@@ -62,7 +60,7 @@ export const albums = [
       { id: 'binge-drinking-music-sessions-8', title: 'Rock', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/Binge%20Drinking%20Music%20%28Sessions%29/Rock.mp3' }
     ]
   },
-       {
+  {
     id: 'death-race-for-love-sessions',
     title: 'Death Race For Love (Sessions)',
     artist: 'Juice WRLD',
@@ -176,7 +174,7 @@ export const albums = [
       { id: 'death-race-for-love-sessions-105', title: 'Z Nation', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/Death%20Race%20For%20Love%20%28Sessions%29/Z_Nation.mp3' }
     ]
   },
-       {
+  {
     id: 'goodbye-good-riddance-sessions',
     title: 'Goodbye & Good Riddance (Sessions)',
     artist: 'Juice WRLD',
@@ -417,7 +415,7 @@ export const albums = [
       { id: 'goodbye-good-riddance-sessions-232', title: 'Zombie Shit (Left 4 Dead)', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/Goodbye%20%26%20Good%20Riddance%20%28Sessions%29/Zombie_Shit_%28Left_4_Dead%29.mp3' }
     ]
   },
-       {
+  {
     id: 'juicethekidd-sessions',
     title: 'JuiceTheKidd (Sessions)',
     artist: 'JuiceTheKidd',
@@ -453,7 +451,7 @@ export const albums = [
       { id: 'juicethekidd-sessions-27', title: 'You Freestyle', artist: 'JuiceTheKidd', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/JuiceTheKidd%20%28Sessions%29/You_Freestyle.mp3' }
     ]
   },
-       {
+  {
     id: 'jw3-sessions',
     title: 'JW3 (Sessions)',
     artist: 'Juice WRLD',
@@ -582,7 +580,7 @@ export const albums = [
       { id: 'jw3-sessions-120', title: 'Zoom', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/JW3%20%28Sessions%29/Zoom.mp3' }
     ]
   },
-       {
+  {
     id: 'wrld-on-drugs-sessions',
     title: 'WRLD On Drugs (Sessions)',
     artist: 'Juice WRLD',
@@ -815,4 +813,4 @@ export const albums = [
       { id: 'wrld-on-drugs-sessions-224', title: 'Zombie', artist: 'Juice WRLD', url: 'https://f005.backblazeb2.com/file/eviltwins-music/music/WRLD%20On%20Drugs%20%28Sessions%29/Zombie.mp3' }
     ]
   } 
-]; 
+];
