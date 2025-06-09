@@ -37,16 +37,23 @@ export const PlayerProvider = ({ children }) => {
   const currentTrack = activeQueue[currentTrackIndex] || null;
 
   useEffect(() => {
-    // When the queue changes (e.g., playing a new album), update the shuffled queue
-    setShuffledQueue(shuffleArray([...queue]));
+    // When the queue changes, update the shuffled queue
+    if (queue.length > 0) {
+        setShuffledQueue(shuffleArray([...queue]));
+    }
   }, [queue]);
+  
+  // Set a default queue on initial load
+  useEffect(() => {
+    if (allSongs.length > 0) {
+        setQueue(allSongs);
+        setCurrentTrackIndex(0);
+    }
+  }, [allSongs]);
 
   const playAlbum = (albumSongs, startAtIndex = 0) => {
-    // Ensure the songs in the queue have cover art if they don't already
     const songsWithCovers = albumSongs.map(song => {
         if (song.cover) return song;
-        // If playing from search results, cover is already there.
-        // If playing from an album, find its parent album cover.
         const parentAlbum = albums.find(a => a.songs.some(s => s.id === song.id));
         return { ...song, cover: parentAlbum.cover };
     });
@@ -56,14 +63,14 @@ export const PlayerProvider = ({ children }) => {
     setIsPlaying(true);
   };
   
-  const playNext = () => {
+  const handlePlayNext = () => {
     if (!currentTrack) return;
     const nextIndex = (currentTrackIndex + 1) % activeQueue.length;
     setCurrentTrackIndex(nextIndex);
     setIsPlaying(true);
   };
 
-  const playPrevious = () => {
+  const handlePlayPrevious = () => {
     if (!currentTrack) return;
     const prevIndex = (currentTrackIndex - 1 + activeQueue.length) % activeQueue.length;
     setCurrentTrackIndex(prevIndex);
@@ -73,17 +80,45 @@ export const PlayerProvider = ({ children }) => {
   const toggleShuffle = () => {
     setIsShuffling(prev => !prev);
   };
+  
+  const addToQueue = (song) => {
+    // Add to the end of the non-shuffled queue
+    setQueue(prevQueue => [...prevQueue, song]);
+    // To make it available immediately in shuffle mode, add it to a random future position
+    setShuffledQueue(prevShuffled => {
+        const newShuffled = [...prevShuffled];
+        const insertIndex = Math.floor(Math.random() * (newShuffled.length - currentTrackIndex)) + currentTrackIndex + 1;
+        newShuffled.splice(insertIndex, 0, song);
+        return newShuffled;
+    });
+    console.log(`${song.title} added to queue.`);
+  };
+
+  const playSongNext = (song) => {
+    // Insert song after the current track in both queues
+    const newQueue = [...queue];
+    newQueue.splice(currentTrackIndex + 1, 0, song);
+    setQueue(newQueue);
+
+    const newShuffledQueue = [...shuffledQueue];
+    newShuffledQueue.splice(currentTrackIndex + 1, 0, song);
+    setShuffledQueue(newShuffledQueue);
+    console.log(`${song.title} will play next.`);
+  };
 
   const value = {
     allSongs,
+    queue,
     currentTrack,
     isPlaying,
     isShuffling,
     playAlbum,
-    playNext,
-    playPrevious,
+    playNext: handlePlayNext,
+    playPrevious: handlePlayPrevious,
     setIsPlaying,
     toggleShuffle,
+    addToQueue,
+    playSongNext
   };
 
   return (
