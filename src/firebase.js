@@ -1,16 +1,16 @@
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// TODO: Replace the following with your app's Firebase project configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Your web app's Firebase configuration - WITH YOUR NEW, REGENERATED KEY
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD1Ln318H6jzHP8uR2AYR3l9sPzYxSAPKs", // <-- Make sure this is the new key
+  authDomain: "eviltwins-3b5dd.firebaseapp.com",
+  projectId: "eviltwins-3b5dd",
+  storageBucket: "eviltwins-3b5dd.appspot.com",
+  messagingSenderId: "778606183761",
+  appId: "1:778606183761:web:9b7acb8517074e9eee3f70"
 };
 
 // Initialize Firebase
