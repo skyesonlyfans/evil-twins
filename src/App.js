@@ -13,6 +13,8 @@ import Albums from './pages/Albums';
 import AlbumDetail from './pages/AlbumDetail';
 import Search from './pages/Search';
 import Library from './pages/Library';
+import PlaylistDetail from './pages/PlaylistDetail'; // Import new page
+import Queue from './pages/Queue'; // Import new page
 
 function App() {
   return (
@@ -35,6 +37,8 @@ function App() {
               <Route path="album/:albumId" element={<AlbumDetail />} />
               <Route path="search" element={<Search />} />
               <Route path="library" element={<Library />} />
+              <Route path="playlist/:playlistId" element={<PlaylistDetail />} /> {/* Add new route */}
+              <Route path="queue" element={<Queue />} /> {/* Add new route */}
             </Route>
           </Routes>
         </DownloadProvider>
