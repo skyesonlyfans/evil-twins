@@ -1,18 +1,18 @@
 import axios from 'axios';
 
 // -----------------------------------------------------------------------------
-// IMPORTANT: REPLACE THIS WITH YOUR OWN CLIENT ACCESS TOKEN FROM GENIUS.COM
+// IMPORTANT: This token should be kept secure and ideally not be directly in the source code.
 const GENIUS_ACCESS_TOKEN = 'RikXcu5kcsziNp_lflxoFjTc40ocgtyw14_Jdc44vXRzB3kgL89rmXwcAgc5_2r3';
 // -----------------------------------------------------------------------------
 
-// Switched to a different CORS proxy for better reliability
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/'; 
+// NOTE: This proxy is ONLY for scraping the Genius HTML page, NOT for API calls.
+// Public proxies can be unreliable. For production, a self-hosted proxy is recommended.
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 const API_BASE_URL = 'https://api.genius.com';
 
-// ... rest of the file remains the same
 /**
  * Searches for a song on Genius by title and artist.
- * @returns {Promise<string|null>} The URL of the best match, or null.
+ * This call goes DIRECTLY to the Genius API.
  */
 const searchForSong = async (title, artist) => {
   const searchQuery = `${title} ${artist}`.toLowerCase()
@@ -20,6 +20,7 @@ const searchForSong = async (title, artist) => {
     .replace(/ *\[[^\]]*\] */g, "")
     .trim();
 
+  // The proxy is REMOVED from this API call
   const response = await axios.get(`${API_BASE_URL}/search`, {
     headers: { 'Authorization': `Bearer ${GENIUS_ACCESS_TOKEN}` },
     params: { 'q': searchQuery },
@@ -34,9 +35,10 @@ const searchForSong = async (title, artist) => {
 
 /**
  * Gets a song's data directly from Genius using its ID.
- * @returns {Promise<string|null>} The URL of the song, or null.
+ * This call goes DIRECTLY to the Genius API.
  */
 const getSongById = async (songId) => {
+  // The proxy is REMOVED from this API call
   const response = await axios.get(`${API_BASE_URL}/songs/${songId}`, {
     headers: { 'Authorization': `Bearer ${GENIUS_ACCESS_TOKEN}` },
   });
@@ -45,8 +47,6 @@ const getSongById = async (songId) => {
 
 /**
  * Finds the best Genius URL for a song, prioritizing a direct ID lookup.
- * @param {object} song The song object, which may contain a `geniusId`.
- * @returns {Promise<string|null>} The URL of the song, or null.
  */
 export const findBestGeniusUrl = async (song) => {
     if (!GENIUS_ACCESS_TOKEN || GENIUS_ACCESS_TOKEN === 'YOUR_GENIUS_CLIENT_ACCESS_TOKEN_HERE') {
@@ -63,15 +63,24 @@ export const findBestGeniusUrl = async (song) => {
         }
     } catch (error) {
         console.error('Error finding song on Genius:', error.message);
-        return null;
+        // If the direct API call fails, it might be a CORS issue after all, let's try with the proxy as a fallback for the API call
+        console.log('Direct API call failed, trying with proxy as fallback...');
+        try {
+             const proxiedResponse = await axios.get(`${CORS_PROXY}${API_BASE_URL}/songs/${song.geniusId}`, {
+                 headers: { 'Authorization': `Bearer ${GENIUS_ACCESS_TOKEN}` },
+             });
+             return proxiedResponse.data.response.song.url;
+        } catch (proxyError) {
+             console.error('Proxy fallback also failed:', proxyError.message);
+             return null;
+        }
     }
 };
 
 
 /**
  * Scrapes the lyrics from a given Genius URL.
- * @param {string} url The URL of the song page on Genius.com.
- * @returns {Promise<string|null>} A promise that resolves to the lyrics HTML, or null on failure.
+ * This call NEEDS the proxy because we are scraping a website, not an API.
  */
 export const getLyrics = async (url) => {
     if (!url) return null;
