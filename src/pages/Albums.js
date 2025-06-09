@@ -2,15 +2,43 @@ import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { albums } from '../db/songs';
+import { usePlayer } from '../contexts/PlayerContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRandom } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
-  padding: 24px;
+  padding: 24px 32px;
+`;
+
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 `;
 
 const PageTitle = styled.h1`
   font-size: 2rem;
   font-weight: 900;
-  margin-bottom: 24px;
+  margin: 0;
+`;
+
+const ShuffleButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 500px;
+  padding: 10px 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primaryDark};
+  }
 `;
 
 const AlbumGrid = styled.div`
@@ -65,9 +93,17 @@ const AlbumArtist = styled.p`
 `;
 
 const Albums = () => {
+  const { playAndShuffleAll } = usePlayer();
+
   return (
     <PageContainer>
-      <PageTitle>Albums</PageTitle>
+      <HeaderContainer>
+        <PageTitle>Albums</PageTitle>
+        <ShuffleButton onClick={playAndShuffleAll}>
+          <FontAwesomeIcon icon={faRandom} />
+          Shuffle Play
+        </ShuffleButton>
+      </HeaderContainer>
       <AlbumGrid>
         {albums.map((album) => (
           <AlbumCard key={album.id} to={`/album/${album.id}`}>
