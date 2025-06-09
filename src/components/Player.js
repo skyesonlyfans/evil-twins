@@ -6,7 +6,7 @@ import { usePlayer } from '../contexts/PlayerContext';
 import { useDownloads } from '../contexts/DownloadContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle, faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle, faPlay, faPause, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
   background-color: #181818;
@@ -88,15 +88,18 @@ const PlayerControlsContainer = styled.div`
   justify-self: center;
   
   .rhap_container { background-color: transparent; box-shadow: none; padding: 0; }
-  .rhap_time { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 0.8rem; }
+  .rhap_time, .rhap_volume-controls, .rhap_additional-controls { 
+    color: ${({ theme }) => theme.colors.textSecondary}; 
+    font-size: 0.8rem; 
+  }
   .rhap_progress-indicator, .rhap_volume-indicator { background: ${({ theme }) => theme.colors.primary}; }
   .rhap_progress-filled { background-color: #fff; }
   .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
-  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
-  .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
+  .rhap_main-controls-button { color: #fff; font-size: 1.5rem; }
+  .rhap_play-pause-button { font-size: 2.2rem; }
 
   @media (max-width: 768px) {
-    display: none; // Hide the full player controls on mobile
+    display: none;
   }
 `;
 
@@ -138,7 +141,6 @@ const CustomControlButton = styled.button`
 
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
-  const { downloadedSongIds, downloadSong } = useDownloads();
   const {
     currentTrack, isPlaying, isShuffling, togglePlayerView, isPlayerViewOpen,
     setIsPlaying, playNext, playPrevious, toggleShuffle,
@@ -157,10 +159,7 @@ const Player = () => {
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
-  const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
-
-  const isCurrentSongDownloaded = currentTrack ? downloadedSongIds.has(currentTrack.id) : false;
-
+  
   return (
     <>
       <PlayerBarContainer>
@@ -195,11 +194,14 @@ const Player = () => {
         </PlayerControlsContainer>
         
         <MobileControls>
-            <CustomControlButton onClick={() => currentTrack && downloadSong(currentTrack)} disabled={!currentTrack || isCurrentSongDownloaded}>
-                <FontAwesomeIcon icon={isCurrentSongDownloaded ? faCheckCircle : faDownload} />
-            </CustomControlButton>
-            <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.8rem', color: 'white'}}>
+            <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.5rem', color: 'white'}}>
                 <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
+            </CustomControlButton>
+            <CustomControlButton onClick={playNext} disabled={!currentTrack} style={{fontSize: '1.5rem', color: 'white'}}>
+                <FontAwesomeIcon icon={faStepForward} />
+            </CustomControlButton>
+            <CustomControlButton onClick={togglePlayerView} disabled={!currentTrack}>
+              <FontAwesomeIcon icon={faExpand} />
             </CustomControlButton>
         </MobileControls>
 
@@ -207,7 +209,7 @@ const Player = () => {
             <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle" disabled={!currentTrack}>
                 <FontAwesomeIcon icon={faRandom} />
             </CustomControlButton>
-            <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics" disabled={!currentTrack}>
+            <CustomControlButton onClick={() => currentTrack && setIsLyricsOpen(true)} aria-label="Show Lyrics" disabled={!currentTrack}>
                 <FontAwesomeIcon icon={faQuoteRight} />
             </CustomControlButton>
             <CustomControlButton onClick={togglePlayerView} aria-label="Toggle Player View" disabled={!currentTrack}>
