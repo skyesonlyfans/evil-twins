@@ -5,7 +5,7 @@ import { albums } from '../db/songs';
 import { usePlayer } from '../contexts/PlayerContext';
 import { useDownloads } from '../contexts/DownloadContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faDownload, faCheckCircle, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faDownload, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   color: ${({ theme }) => theme.colors.text};
@@ -112,9 +112,13 @@ const SongRow = styled.div`
   gap: 16px;
   padding: 8px 16px;
   border-radius: 4px;
-  cursor: pointer;
   color: ${({ theme, $isPlaying }) => $isPlaying ? theme.colors.primary : theme.colors.textSecondary};
   
+  .song-info {
+    cursor: pointer;
+    display: contents;
+  }
+
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
     .song-action-icon {
@@ -166,6 +170,9 @@ const AlbumDetail = () => {
     playAlbum(album.songs, trackIndex);
   };
 
+  // Prepare song objects with cover art for download
+  const songsWithCovers = album.songs.map(song => ({ ...song, cover: album.cover }));
+
   return (
     <PageContainer>
       <AlbumHeader>
@@ -181,23 +188,25 @@ const AlbumDetail = () => {
         <PlayButton onClick={handlePlayAlbum} aria-label={`Play ${album.title}`}>
           <FontAwesomeIcon icon={faPlay} />
         </PlayButton>
-        <ActionButton onClick={() => downloadAlbum(album.songs)} aria-label={`Download ${album.title}`}>
+        <ActionButton onClick={() => downloadAlbum(songsWithCovers)} aria-label={`Download ${album.title}`}>
             <FontAwesomeIcon icon={faDownload} />
         </ActionButton>
       </ActionsContainer>
 
       <SongListContainer>
-        {album.songs.map((song, index) => {
+        {songsWithCovers.map((song, index) => {
           const isDownloaded = downloadedSongIds.has(song.id);
           return (
             <SongRow 
               key={song.id} 
               $isPlaying={currentTrack?.id === song.id}
             >
-              <SongIndex onClick={() => handlePlayTrack(index)}>{index + 1}</SongIndex>
-              <SongTitle onClick={() => handlePlayTrack(index)} $isPlaying={currentTrack?.id === song.id}>
-                {song.title}
-              </SongTitle>
+              <div className="song-info" onClick={() => handlePlayTrack(index)}>
+                <SongIndex>{index + 1}</SongIndex>
+                <SongTitle $isPlaying={currentTrack?.id === song.id}>
+                  {song.title}
+                </SongTitle>
+              </div>
               <DownloadStatusIcon
                 className="song-action-icon"
                 $isDownloaded={isDownloaded}
