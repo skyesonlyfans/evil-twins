@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
+import ContextMenu from '../components/ContextMenu';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
 const PageContainer = styled.div`
   padding: 24px 32px;
@@ -40,17 +43,19 @@ const ResultsContainer = styled.div`
 
 const SongRow = styled.div`
   display: grid;
-  grid-template-columns: 50px 1fr;
+  grid-template-columns: 50px 1fr 50px;
   align-items: center;
   gap: 16px;
   padding: 10px 16px;
   border-radius: 6px;
-  cursor: pointer;
   transition: background-color 0.2s ease;
   color: ${({ theme, $isPlaying }) => $isPlaying ? theme.colors.primary : 'inherit'};
 
   &:hover {
     background-color: ${({ theme }) => theme.colors.surfaceHighlight};
+    .song-action-icon {
+        opacity: 1;
+    }
   }
 `;
 
@@ -64,6 +69,7 @@ const SongCover = styled.img`
 const SongInfo = styled.div`
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 `;
 
 const SongTitle = styled.p`
@@ -76,10 +82,29 @@ const SongArtist = styled.p`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
+const MenuButton = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  opacity: 0;
+  font-size: 1rem;
+  cursor: pointer;
+
+  &.song-action-icon:hover {
+    color: ${({ theme }) => theme.colors.text};
+  }
+
+  ${SongRow}:hover & {
+    opacity: 1;
+  }
+`;
+
 const Search = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const { allSongs, playAlbum, currentTrack } = usePlayer();
+  const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
+  
+  const { allSongs, playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
 
   useEffect(() => {
     if (query.trim() === '') {
@@ -103,8 +128,29 @@ const Search = () => {
     }
   };
 
+  const handleOpenMenu = (event, song) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setMenuState({
+      isOpen: true,
+      x: event.pageX,
+      y: event.pageY,
+      song: song,
+    });
+  };
+
+  const handleCloseMenu = () => {
+    setMenuState({ ...menuState, isOpen: false });
+  };
+  
+  const menuItems = menuState.song ? [
+    { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
+    { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
+  ] : [];
+
   return (
     <PageContainer>
+      <ContextMenu isOpen={menuState.isOpen} onClose={handleCloseMenu} position={menuState} menuItems={menuItems} />
       <SearchInputContainer>
         <SearchInput
           type="text"
@@ -117,14 +163,18 @@ const Search = () => {
         {results.map(song => (
           <SongRow 
             key={song.id} 
-            onClick={() => handlePlayTrack(song)}
             $isPlaying={currentTrack?.id === song.id}
           >
-            <SongCover src={song.cover} alt={song.title} />
-            <SongInfo>
-              <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
-              <SongArtist>{song.artist}</SongArtist>
-            </SongInfo>
+            <div onClick={() => handlePlayTrack(song)} style={{display: 'contents', cursor: 'pointer'}}>
+              <SongCover src={song.cover} alt={song.title} />
+              <SongInfo>
+                <SongTitle $isPlaying={currentTrack?.id === song.id}>{song.title}</SongTitle>
+                <SongArtist>{song.artist}</SongArtist>
+              </SongInfo>
+            </div>
+            <MenuButton className="song-action-icon" onClick={(e) => handleOpenMenu(e, song)}>
+              <FontAwesomeIcon icon={faEllipsisV} />
+            </MenuButton>
           </SongRow>
         ))}
       </ResultsContainer>
