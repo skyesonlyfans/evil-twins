@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
 import ContextMenu from '../components/ContextMenu';
+import AddToPlaylistModal from '../components/AddToPlaylistModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 
@@ -103,6 +104,7 @@ const Search = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [menuState, setMenuState] = useState({ isOpen: false, x: 0, y: 0, song: null });
+  const [isAddToPlaylistModalOpen, setAddToPlaylistModalOpen] = useState(false);
   
   const { allSongs, playAlbum, currentTrack, addToQueue, playSongNext } = usePlayer();
 
@@ -111,14 +113,12 @@ const Search = () => {
       setResults([]);
       return;
     }
-
     const lowercasedQuery = query.toLowerCase();
     const filteredResults = allSongs.filter(song => 
       song.title.toLowerCase().includes(lowercasedQuery) || 
       song.artist.toLowerCase().includes(lowercasedQuery)
     );
     setResults(filteredResults);
-
   }, [query, allSongs]);
 
   const handlePlayTrack = (songToPlay) => {
@@ -131,26 +131,33 @@ const Search = () => {
   const handleOpenMenu = (event, song) => {
     event.preventDefault();
     event.stopPropagation();
-    setMenuState({
-      isOpen: true,
-      x: event.pageX,
-      y: event.pageY,
-      song: song,
-    });
+    setMenuState({ isOpen: true, x: event.pageX, y: event.pageY, song: song });
   };
 
   const handleCloseMenu = () => {
     setMenuState({ ...menuState, isOpen: false });
   };
   
+  const handleAddToPlaylistClick = () => {
+    setAddToPlaylistModalOpen(true);
+  };
+
   const menuItems = menuState.song ? [
     { label: 'Add to Queue', onClick: () => addToQueue(menuState.song) },
     { label: 'Play Next', onClick: () => playSongNext(menuState.song) },
+    { label: 'Add to Playlist', onClick: handleAddToPlaylistClick },
   ] : [];
 
   return (
     <PageContainer>
       <ContextMenu isOpen={menuState.isOpen} onClose={handleCloseMenu} position={menuState} menuItems={menuItems} />
+      {isAddToPlaylistModalOpen && (
+        <AddToPlaylistModal 
+          isOpen={isAddToPlaylistModalOpen}
+          onClose={() => setAddToPlaylistModalOpen(false)}
+          songToAdd={menuState.song}
+        />
+      )}
       <SearchInputContainer>
         <SearchInput
           type="text"
