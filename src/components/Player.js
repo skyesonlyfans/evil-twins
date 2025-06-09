@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
@@ -29,7 +29,7 @@ const TrackInfoContainer = styled.div`
   align-items: center;
   gap: 14px;
   min-width: 180px;
-  cursor: pointer; /* <-- Add cursor to show it's clickable */
+  cursor: pointer;
 
   @media (max-width: 768px) {
     display: none;
@@ -95,28 +95,23 @@ const CustomControlButton = styled.button`
 
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
-  const playerRef = useRef(null);
-
   const {
-    currentTrack,
-    isPlaying,
-    isShuffling,
-    togglePlayerView, // <-- Get the toggle function from the context
-    setIsPlaying,
-    playNext,
-    playPrevious,
-    toggleShuffle,
+    currentTrack, isPlaying, isShuffling, togglePlayerView, setIsPlaying,
+    playNext, playPrevious, toggleShuffle,
+    // Get the new time state and functions from the context
+    setDuration, setCurrentTime, audioRef
   } = usePlayer();
 
+  // Sync context play state with the audio element
   useEffect(() => {
-    if (playerRef.current && playerRef.current.audio.current) {
+    if (audioRef.current && audioRef.current.audio.current) {
         if (isPlaying && currentTrack) {
-            playerRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
+            audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
         } else {
-            playerRef.current.audio.current.pause();
+            audioRef.current.audio.current.pause();
         }
     }
-  }, [isPlaying, currentTrack]);
+  }, [isPlaying, currentTrack, audioRef]);
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
@@ -139,7 +134,7 @@ const Player = () => {
         
         <PlayerControlsContainer>
           <AudioPlayer
-            ref={playerRef}
+            ref={audioRef} // <-- Attach the shared ref to the player
             autoPlayAfterSrcChange={false}
             src={currentTrack ? currentTrack.url : ""}
             onPlay={handlePlay}
@@ -147,6 +142,10 @@ const Player = () => {
             onClickNext={playNext}
             onClickPrevious={playPrevious}
             onEnded={playNext}
+            // Listen for time updates and send them to the context
+            onListen={(e) => setCurrentTime(e.target.currentTime)}
+            onLoadedMetadata={(e) => setDuration(e.target.duration)}
+            listenInterval={100} // Update time every 100ms
             showSkipControls={true}
             showJumpControls={false}
           />
