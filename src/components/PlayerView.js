@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
 import { findBestGeniusUrl, getLyrics } from '../services/genius';
@@ -72,6 +72,7 @@ const ArtAndControls = styled.div`
   align-items: center;
   justify-content: center;
   max-width: 500px;
+  width: 100%;
 `;
 
 const AlbumArtLarge = styled.img`
@@ -86,6 +87,7 @@ const AlbumArtLarge = styled.img`
 const TrackInfo = styled.div`
   text-align: center;
   width: 100%;
+  margin-bottom: 20px;
 `;
 
 const TrackTitleLarge = styled.h1`
@@ -98,7 +100,45 @@ const TrackArtistLarge = styled.h2`
   font-size: 1.5rem;
   font-weight: 400;
   color: ${({ theme }) => theme.colors.textSecondary};
-  margin: 0 0 40px 0;
+  margin: 0;
+`;
+
+const ProgressBarContainer = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+`;
+
+const TimeText = styled.span`
+  font-size: 0.8rem;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  min-width: 40px;
+`;
+
+const SeekBar = styled.input`
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #4d4d4d;
+  border-radius: 5px;
+  outline: none;
+  transition: background 0.2s;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const ControlsContainer = styled.div`
@@ -133,16 +173,14 @@ const PlayPauseButton = styled(ControlButton)`
   align-items: center;
   justify-content: center;
 
-  &:hover {
-    color: black;
-    transform: scale(1.05);
-  }
+  &:hover { color: black; transform: scale(1.05); }
 `;
 
 const LyricsPanel = styled.div`
   flex: 1;
   height: 100%;
   max-width: 500px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   color: ${({ theme }) => theme.colors.textSecondary};
@@ -150,9 +188,7 @@ const LyricsPanel = styled.div`
   font-weight: bold;
   line-height: 2;
   
-  p {
-    margin: 0;
-  }
+  p { margin: 0; }
   
   @media (max-width: 1024px) {
     height: auto;
@@ -164,6 +200,7 @@ const LyricsContainer = styled.div`
   overflow-y: auto;
   padding-right: 15px;
   text-align: left;
+  scroll-behavior: smooth; /* <-- Enable smooth scrolling */
   
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: transparent; }
@@ -173,16 +210,17 @@ const LyricsContainer = styled.div`
 
 const PlayerView = () => {
   const { 
-    currentTrack, isPlaying, isShuffling,
-    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView 
+    currentTrack, isPlaying, isShuffling, duration, currentTime,
+    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
   } = usePlayer();
 
   const [lyrics, setLyrics] = useState('');
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
+  const lyricsRef = useRef(null);
 
+  // Fetch lyrics when the track changes
   useEffect(() => {
     if (!currentTrack) return;
-
     const fetchLyricsData = async () => {
       setIsLoadingLyrics(true);
       setLyrics('');
@@ -195,9 +233,23 @@ const PlayerView = () => {
       }
       setIsLoadingLyrics(false);
     };
-
     fetchLyricsData();
   }, [currentTrack]);
+
+  // Auto-scroll lyrics container
+  useEffect(() => {
+    if (duration > 0 && lyricsRef.current) {
+      const scrollPercent = currentTime / duration;
+      const scrollHeight = lyricsRef.current.scrollHeight - lyricsRef.current.clientHeight;
+      lyricsRef.current.scrollTop = scrollHeight * scrollPercent;
+    }
+  }, [currentTime, duration]);
+
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   if (!currentTrack) return null;
 
@@ -213,6 +265,11 @@ const PlayerView = () => {
             <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
             <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
           </TrackInfo>
+          <ProgressBarContainer>
+              <TimeText>{formatTime(currentTime)}</TimeText>
+              <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(e.target.value)} />
+              <TimeText>{formatTime(duration)}</TimeText>
+          </ProgressBarContainer>
           <ControlsContainer>
             <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
               <FontAwesomeIcon icon={faRandom} />
@@ -226,14 +283,14 @@ const PlayerView = () => {
             <ControlButton onClick={playNext} aria-label="Next Song">
               <FontAwesomeIcon icon={faStepForward} />
             </ControlButton>
-            <ControlButton style={{opacity: 0, cursor: 'default'}}> {/* Placeholder for balance */}
+            <ControlButton style={{opacity: 0, cursor: 'default'}}>
                 <FontAwesomeIcon icon={faRandom} />
             </ControlButton>
           </ControlsContainer>
         </ArtAndControls>
 
         <LyricsPanel>
-          <LyricsContainer>
+          <LyricsContainer ref={lyricsRef}>
             {isLoadingLyrics ? 'Loading lyrics...' : <div dangerouslySetInnerHTML={{ __html: lyrics }} />}
           </LyricsContainer>
         </LyricsPanel>
