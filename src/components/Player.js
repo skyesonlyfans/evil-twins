@@ -7,7 +7,6 @@ import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom, faQuoteRight } from '@fortawesome/free-solid-svg-icons';
 
-// This is the main container for the entire bottom bar
 const PlayerBarContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.surface};
   border-top: 1px solid #282828;
@@ -25,15 +24,15 @@ const PlayerBarContainer = styled.div`
   }
 `;
 
-// Left side: Track Info
 const TrackInfoContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 180px;
+  cursor: pointer; /* <-- Add cursor to show it's clickable */
 
   @media (max-width: 768px) {
-    display: none; // Hide on mobile for a simpler player
+    display: none;
   }
 `;
 
@@ -58,46 +57,22 @@ const TrackArtist = styled.span`
   font-size: 0.8rem;
 `;
 
-
-// Center: Player controls
 const PlayerControlsContainer = styled.div`
   width: 100%;
   max-width: 722px;
   justify-self: center;
 
-  .rhap_container {
-    background-color: transparent;
-    box-shadow: none;
-    padding: 0;
-  }
-  .rhap_header, .rhap_progress-section, .rhap_controls-section, .rhap_main-controls, .rhap_additional-controls, .rhap_volume-controls {
-    background: transparent;
-  }
-  .rhap_header { display: none; } // We handle the header in TrackInfo
-  
-  /* All other player styles from before... */
-  .rhap_time {
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 0.8rem;
-  }
-  .rhap_progress-indicator, .rhap_volume-indicator {
-    background: ${({ theme }) => theme.colors.primary};
-  }
+  .rhap_container { background-color: transparent; box-shadow: none; padding: 0; }
+  .rhap_header, .rhap_progress-section, .rhap_controls-section, .rhap_main-controls, .rhap_additional-controls, .rhap_volume-controls { background: transparent; }
+  .rhap_header { display: none; }
+  .rhap_time { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 0.8rem; }
+  .rhap_progress-indicator, .rhap_volume-indicator { background: ${({ theme }) => theme.colors.primary}; }
   .rhap_progress-filled { background-color: #fff; }
   .rhap_progress-bar:hover .rhap_progress-filled { background-color: ${({ theme }) => theme.colors.primary}; }
-  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button {
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: 1rem;
-    &:hover { color: #fff; }
-  }
-  .rhap_play-pause-button {
-    color: #fff;
-    font-size: 2rem;
-    &:hover { color: #fff; }
-  }
+  .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1rem; &:hover { color: #fff; } }
+  .rhap_play-pause-button { color: #fff; font-size: 2rem; &:hover { color: #fff; } }
 `;
 
-// Right side: Custom Controls
 const CustomControlsContainer = styled.div`
   display: flex;
   align-items: center;
@@ -126,6 +101,7 @@ const Player = () => {
     currentTrack,
     isPlaying,
     isShuffling,
+    togglePlayerView, // <-- Get the toggle function from the context
     setIsPlaying,
     playNext,
     playPrevious,
@@ -149,7 +125,7 @@ const Player = () => {
   return (
     <>
       <PlayerBarContainer>
-        <TrackInfoContainer>
+        <TrackInfoContainer onClick={togglePlayerView}>
           {currentTrack && (
             <>
               <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
