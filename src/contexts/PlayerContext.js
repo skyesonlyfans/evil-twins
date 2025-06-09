@@ -17,7 +17,6 @@ const shuffleArray = (array) => {
 };
 
 export const PlayerProvider = ({ children }) => {
-  // Create a master list of all songs, ensuring each song has its album cover.
   const [allSongs] = useState(() => 
     albums.flatMap(album => 
       album.songs.map(song => ({
@@ -32,7 +31,7 @@ export const PlayerProvider = ({ children }) => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(-1);
   const [isShuffling, setIsShuffling] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isPlayerViewOpen, setIsPlayerViewOpen] = useState(false); // State for full-screen player
+  const [isPlayerViewOpen, setIsPlayerViewOpen] = useState(false);
 
   const activeQueue = isShuffling ? shuffledQueue : queue;
   const currentTrack = activeQueue[currentTrackIndex] || null;
@@ -47,6 +46,7 @@ export const PlayerProvider = ({ children }) => {
     if (allSongs.length > 0 && queue.length === 0) {
         setQueue(allSongs);
         setCurrentTrackIndex(0);
+        setIsPlaying(false); // Don't autoplay on initial load
     }
   }, [allSongs, queue]);
 
@@ -60,6 +60,15 @@ export const PlayerProvider = ({ children }) => {
     setQueue(songsWithCovers);
     setCurrentTrackIndex(startAtIndex);
     setIsPlaying(true);
+    setIsShuffling(false); // Always turn off shuffle when a new album is explicitly played
+  };
+
+  const playAndShuffleAll = () => {
+    const globallyShuffled = shuffleArray([...allSongs]);
+    setQueue(globallyShuffled);
+    setCurrentTrackIndex(0);
+    setIsPlaying(true);
+    setIsShuffling(false); // The queue itself is shuffled, so we turn off the "mode"
   };
   
   const handlePlayNext = () => {
@@ -117,6 +126,7 @@ export const PlayerProvider = ({ children }) => {
     isPlayerViewOpen,
     togglePlayerView,
     playAlbum,
+    playAndShuffleAll, // <-- Export the new function
     playNext: handlePlayNext,
     playPrevious: handlePlayPrevious,
     setIsPlaying,
