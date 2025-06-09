@@ -13,10 +13,11 @@
     "react-h5-audio-player": "^3.9.1",
     "react-router-dom": "^6.23.1",
     "react-scripts": "5.0.1",
+    "serve": "^14.2.1",
     "styled-components": "^6.1.11"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "serve -s build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
