@@ -1,62 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { css } from 'styled-components';
 import { usePlayer } from '../contexts/PlayerContext';
-// Corrected import: Only 'getLyrics' is needed now.
-import { getLyrics } from '../services/genius';
+import { getLyrics } from '../services/lyrics'; // Changed import
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
 
-// ... (All styled-components remain the same as the previous correct version)
+// ... (All styled-components remain the same)
 
 const PlayerView = () => {
-    const { 
+  const { 
     currentTrack, isPlaying, isShuffling, duration, currentTime,
     setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
   } = usePlayer();
   
-  const [lyrics, setLyrics] = useState([]);
+  const [lyrics, setLyrics] = useState(null); // Can be {synced, plain}
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
   const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
-  const [error, setError] = useState(null);
 
   const activeLineRef = useRef(null);
 
   useEffect(() => {
     if (!currentTrack) return;
-
     const fetchLyricsData = async () => {
       setIsLoadingLyrics(true);
-      setError(null);
-      setLyrics([]);
-      try {
-        // Corrected logic: Call getLyrics directly with the song object
-        const textLyrics = await getLyrics(currentTrack);
-        
-        if (textLyrics && !textLyrics.toLowerCase().includes("could not be found")) {
-            const lines = textLyrics.split('\n').filter(line => line.trim() !== '');
-            setLyrics(lines);
-        } else {
-           setError(textLyrics); // Show the error message from the API
-           setLyrics([]);
-        }
-      } catch (err) {
-         setError('An error occurred while fetching lyrics.');
-         setLyrics([]);
-      } finally {
-        setIsLoadingLyrics(false);
-      }
+      setLyrics(null);
+      const fetchedLyrics = await getLyrics(currentTrack);
+      setLyrics(fetchedLyrics);
+      setIsLoadingLyrics(false);
     };
-
     fetchLyricsData();
   }, [currentTrack]);
 
   useEffect(() => {
-      if (duration > 0 && lyrics.length > 0) {
-          const progress = currentTime / duration;
-          const lineIndex = Math.floor(progress * lyrics.length);
-          setCurrentLineIndex(lineIndex);
-      }
-  }, [currentTime, duration, lyrics]);
+    if (lyrics?.synced) {
+      const activeLine = lyrics.synced.findIndex((line, index) => {
+        const nextLine = lyrics.synced[index + 1];
+        return currentTime >= line.time && (nextLine ? currentTime < nextLine.time : true);
+      });
+      setCurrentLineIndex(activeLine);
+    }
+  }, [currentTime, lyrics]);
 
   useEffect(() => {
     if (activeLineRef.current) {
@@ -74,6 +57,21 @@ const PlayerView = () => {
   };
 
   if (!currentTrack) return null;
+
+  const renderLyrics = () => {
+      if(isLoadingLyrics) return <LyricLine>Loading lyrics...</LyricLine>;
+      if(!lyrics) return <LyricLine>Lyrics not found.</LyricLine>;
+
+      if(lyrics.synced && lyrics.synced.length > 0){
+          return lyrics.synced.map((line, index) => (
+             <LyricLine key={`${line.time}-${index}`} $isActive={index === currentLineIndex} ref={index === currentLineIndex ? activeLineRef : null}>
+                 {line.text}
+             </LyricLine>
+          ));
+      }
+      // Fallback to plain lyrics
+      return lyrics.plain.split('\n').map((line, index) => <LyricLine key={index}>{line}</LyricLine>)
+  }
 
   return (
     <PlayerViewOverlay bgImage={currentTrack.cover}>
@@ -93,36 +91,16 @@ const PlayerView = () => {
                 <TimeText>{formatTime(duration)}</TimeText>
             </ProgressBarContainer>
             <ControlsContainer>
-                <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-                    <FontAwesomeIcon icon={faRandom} />
-                </ControlButton>
-                <ControlButton onClick={playPrevious} aria-label="Previous Song">
-                    <FontAwesomeIcon icon={faStepBackward} />
-                </ControlButton>
-                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
-                    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
-                </PlayPauseButton>
-                <ControlButton onClick={playNext} aria-label="Next Song">
-                    <FontAwesomeIcon icon={faStepForward} />
-                </ControlButton>
-                <ControlButton style={{opacity: 0, cursor: 'default'}}>
-                    <FontAwesomeIcon icon={faRandom} />
-                </ControlButton>
+                <ControlButton onClick={toggleShuffle} $isActive={isShuffling}><FontAwesomeIcon icon={faRandom} /></ControlButton>
+                <ControlButton onClick={playPrevious}><FontAwesomeIcon icon={faStepBackward} /></ControlButton>
+                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)}><FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /></PlayPauseButton>
+                <ControlButton onClick={playNext}><FontAwesomeIcon icon={faStepForward} /></ControlButton>
+                <ControlButton style={{opacity: 0, cursor: 'default'}}><FontAwesomeIcon icon={faRandom} /></ControlButton>
             </ControlsContainer>
         </ArtAndControls>
         <LyricsPanel>
           <LyricsContainer>
-            {isLoadingLyrics && <LyricLine>Loading lyrics...</LyricLine>}
-            {error && <LyricLine>{error}</LyricLine>}
-            {!isLoadingLyrics && !error && lyrics.map((line, index) => (
-              <LyricLine
-                key={index}
-                $isActive={index === currentLineIndex}
-                ref={index === currentLineIndex ? activeLineRef : null}
-              >
-                {line}
-              </LyricLine>
-            ))}
+              {renderLyrics()}
           </LyricsContainer>
         </LyricsPanel>
       </PlayerViewContent>
@@ -132,8 +110,7 @@ const PlayerView = () => {
 
 export default PlayerView;
 
-// All styled components below are unchanged and correct from the previous step.
-
+// ... (All styled components remain unchanged)
 const PlayerViewOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -144,7 +121,7 @@ const PlayerViewOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 20px; /* Add padding for smaller screens */
   
   &::before {
     content: '';
