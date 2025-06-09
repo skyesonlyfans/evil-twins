@@ -5,150 +5,6 @@ import { findBestGeniusUrl, getLyrics } from '../services/genius';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
 
-// ... (styled-components like PlayerViewOverlay, CloseButton, etc. remain the same)
-
-const LyricsPanel = styled.div`
-  flex: 1;
-  height: 80%;
-  width: 100%;
-  max-width: 500px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex; /* Use flexbox to center content */
-  align-items: center;
-  justify-content: center;
-  
-  @media (max-width: 768px) {
-    height: 40%;
-  }
-`;
-
-const LyricsContainer = styled.div`
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  padding: 40% 20px; /* Padding top/bottom to center the first/last lines */
-  text-align: center;
-  scroll-behavior: smooth;
-
-  /* Custom Scrollbar for lyrics */
-  &::-webkit-scrollbar { width: 0; background: transparent; }
-`;
-
-const LyricLine = styled.p`
-    margin: 0;
-    padding: 12px 0;
-    font-size: clamp(1.1rem, 3vw, 1.5rem);
-    line-height: 1.6;
-    font-weight: bold;
-    color: ${({ theme }) => theme.colors.textSecondary};
-    opacity: 0.5;
-    transition: all 0.3s ease-in-out;
-
-    ${({ $isActive }) => $isActive && css`
-        color: ${({ theme }) => theme.colors.text};
-        opacity: 1;
-        transform: scale(1.05);
-    `}
-`;
-
-const PlayerView = () => {
-    const { 
-    currentTrack, isPlaying, isShuffling, duration, currentTime,
-    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
-  } = usePlayer();
-  
-  const [lyrics, setLyrics] = useState([]);
-  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
-
-  const activeLineRef = useRef(null);
-
-  useEffect(() => {
-    if (!currentTrack) return;
-    const fetchLyricsData = async () => {
-      setIsLoadingLyrics(true);
-      setLyrics([]);
-      try {
-        const url = await findBestGeniusUrl(currentTrack);
-        if (url) {
-          const scrapedLyricsHtml = await getLyrics(url);
-          if(scrapedLyricsHtml){
-              const lines = scrapedLyricsHtml.split('<br>').filter(line => line.trim() !== '');
-              setLyrics(lines);
-          } else {
-             setLyrics(['Lyrics not available for this track.']);
-          }
-        } else {
-           setLyrics(['Could not find this song on Genius.']);
-        }
-      } catch (err) {
-         setLyrics(['An error occurred while fetching lyrics.']);
-      }
-      setIsLoadingLyrics(false);
-    };
-    fetchLyricsData();
-  }, [currentTrack]);
-
-  useEffect(() => {
-      if (duration > 0 && lyrics.length > 0) {
-          const progress = currentTime / duration;
-          const lineIndex = Math.floor(progress * lyrics.length);
-          setCurrentLineIndex(lineIndex);
-      }
-  }, [currentTime, duration, lyrics]);
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
-  }, [currentLineIndex]);
-
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  if (!currentTrack) return null;
-
-  return (
-    <PlayerViewOverlay bgImage={currentTrack.cover}>
-      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
-        <FontAwesomeIcon icon={faChevronDown} />
-      </CloseButton>
-      <PlayerViewContent>
-        {/* Art and Controls Section */}
-        <ArtAndControls>
-            {/* ... JSX for AlbumArtLarge, TrackInfo, ProgressBar, Controls remains the same ... */}
-        </ArtAndControls>
-        {/* Lyrics Section */}
-        <LyricsPanel>
-          <LyricsContainer>
-            {isLoadingLyrics ? 'Loading lyrics...' : 
-              lyrics.map((line, index) => (
-                <LyricLine
-                  key={index}
-                  $isActive={index === currentLineIndex}
-                  ref={index === currentLineIndex ? activeLineRef : null}
-                  dangerouslySetInnerHTML={{ __html: line }}
-                />
-              ))
-            }
-          </LyricsContainer>
-        </LyricsPanel>
-      </PlayerViewContent>
-    </PlayerViewOverlay>
-  );
-};
-
-
-// Other styled components (PlayerViewOverlay, PlayerViewContent, etc.) are unchanged
-
 const PlayerViewOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -159,7 +15,7 @@ const PlayerViewOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* Add padding for smaller screens */
+  padding: 20px;
   
   &::before {
     content: '';
@@ -179,14 +35,23 @@ const PlayerViewOverlay = styled.div`
 
 const PlayerViewContent = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   color: ${({ theme }) => theme.colors.text};
   width: 100%;
   height: 100%;
-  max-width: 90vh; /* Max-width is now tied to the viewport height */
-  max-height: 90vh; /* Max-height to ensure it fits */
+  max-width: 90vw;
+  max-height: 90vh;
+  gap: 4vw;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    max-width: 100%;
+    max-height: 100%;
+    gap: 2vh;
+    padding-top: 50px; // Space for the close button
+  }
 `;
 
 const CloseButton = styled.button`
@@ -205,17 +70,22 @@ const CloseButton = styled.button`
 `;
 
 const ArtAndControls = styled.div`
-  flex-shrink: 0; /* Prevent this from shrinking weirdly */
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding-bottom: 2vh;
+  max-width: 500px;
+  
+  @media (max-width: 768px) {
+      flex: 0;
+      height: auto;
+  }
 `;
 
 const AlbumArtLarge = styled.img`
   width: 100%;
-  max-width: 45vh; /* Size relative to viewport height */
+  max-width: 45vh;
   height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 12px;
@@ -230,13 +100,13 @@ const TrackInfo = styled.div`
 `;
 
 const TrackTitleLarge = styled.h1`
-  font-size: clamp(1.5rem, 4vw, 2.5rem); /* Responsive font size */
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
   font-weight: 900;
   margin: 0 0 10px 0;
 `;
 
 const TrackArtistLarge = styled.h2`
-  font-size: clamp(1rem, 2.5vw, 1.5rem); /* Responsive font size */
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
   font-weight: 400;
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0;
@@ -303,4 +173,169 @@ const PlayPauseButton = styled(ControlButton)`
   font-size: 2rem;
   &:hover { color: black; transform: scale(1.05); }
 `;
+
+
+const LyricsPanel = styled.div`
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  max-width: 500px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    height: 100%; /* Take remaining height on mobile */
+    background: transparent;
+  }
+`;
+
+const LyricsContainer = styled.div`
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  padding: 50% 20px;
+  text-align: center;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar { width: 0; background: transparent; }
+`;
+
+const LyricLine = styled.p`
+    margin: 0;
+    padding: 12px 0;
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    line-height: 1.6;
+    font-weight: bold;
+    color: ${({ theme }) => theme.colors.textSecondary};
+    opacity: 0.5;
+    transition: all 0.3s ease-in-out;
+
+    ${({ $isActive }) => $isActive && css`
+        color: ${({ theme }) => theme.colors.text};
+        opacity: 1;
+        transform: scale(1.05);
+    `}
+`;
+
+const PlayerView = () => {
+    const { 
+    currentTrack, isPlaying, isShuffling, duration, currentTime,
+    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
+  } = usePlayer();
+  
+  const [lyrics, setLyrics] = useState([]);
+  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
+
+  const activeLineRef = useRef(null);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    const fetchLyricsData = async () => {
+      setIsLoadingLyrics(true);
+      setLyrics([]);
+      try {
+        const url = await findBestGeniusUrl(currentTrack);
+        if (url) {
+          const scrapedLyricsHtml = await getLyrics(url);
+          if(scrapedLyricsHtml){
+              const lines = scrapedLyricsHtml.split('<br>').map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith('['));
+              setLyrics(lines);
+          } else {
+             setLyrics(['Lyrics not available for this track.']);
+          }
+        } else {
+           setLyrics(['Could not find this song on Genius.']);
+        }
+      } catch (err) {
+         setLyrics(['An error occurred while fetching lyrics.']);
+      }
+      setIsLoadingLyrics(false);
+    };
+    fetchLyricsData();
+  }, [currentTrack]);
+
+  useEffect(() => {
+      if (duration > 0 && lyrics.length > 0) {
+          const progress = currentTime / duration;
+          const lineIndex = Math.floor(progress * lyrics.length);
+          setCurrentLineIndex(lineIndex);
+      }
+  }, [currentTime, duration, lyrics]);
+
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentLineIndex]);
+
+  const formatTime = (timeInSeconds) => {
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  if (!currentTrack) return null;
+
+  return (
+    <PlayerViewOverlay bgImage={currentTrack.cover}>
+      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
+        <FontAwesomeIcon icon={faChevronDown} />
+      </CloseButton>
+      <PlayerViewContent>
+        <ArtAndControls>
+            <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
+            <TrackInfo>
+                <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
+                <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
+            </TrackInfo>
+            <ProgressBarContainer>
+                <TimeText>{formatTime(currentTime)}</TimeText>
+                <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(e.target.value)} />
+                <TimeText>{formatTime(duration)}</TimeText>
+            </ProgressBarContainer>
+            <ControlsContainer>
+                <ControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
+                    <FontAwesomeIcon icon={faRandom} />
+                </ControlButton>
+                <ControlButton onClick={playPrevious} aria-label="Previous Song">
+                    <FontAwesomeIcon icon={faStepBackward} />
+                </ControlButton>
+                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)} aria-label={isPlaying ? "Pause" : "Play"}>
+                    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
+                </PlayPauseButton>
+                <ControlButton onClick={playNext} aria-label="Next Song">
+                    <FontAwesomeIcon icon={faStepForward} />
+                </ControlButton>
+                <ControlButton style={{opacity: 0, cursor: 'default'}}>
+                    <FontAwesomeIcon icon={faRandom} />
+                </ControlButton>
+            </ControlsContainer>
+        </ArtAndControls>
+        <LyricsPanel>
+          <LyricsContainer>
+            {isLoadingLyrics ? 'Loading lyrics...' : 
+              lyrics.map((line, index) => (
+                <LyricLine
+                  key={index}
+                  $isActive={index === currentLineIndex}
+                  ref={index === currentLineIndex ? activeLineRef : null}
+                  dangerouslySetInnerHTML={{ __html: line }}
+                />
+              ))
+            }
+          </LyricsContainer>
+        </LyricsPanel>
+      </PlayerViewContent>
+    </PlayerViewOverlay>
+  );
+};
+
 export default PlayerView;
