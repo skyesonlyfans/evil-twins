@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { albums } from '../db/songs'; // We'll use this for now to get all songs
+import { albums } from '../db/songs';
 
 const PlayerContext = createContext();
 
@@ -17,7 +17,16 @@ const shuffleArray = (array) => {
 };
 
 export const PlayerProvider = ({ children }) => {
-  const [allSongs] = useState(() => albums.flatMap(album => album.songs));
+  // Create a master list of all songs, ensuring each song has its album cover.
+  const [allSongs] = useState(() => 
+    albums.flatMap(album => 
+      album.songs.map(song => ({
+        ...song,
+        cover: album.cover // Inject the parent album's cover into each song object
+      }))
+    )
+  );
+  
   const [queue, setQueue] = useState([]);
   const [shuffledQueue, setShuffledQueue] = useState([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(-1);
@@ -33,7 +42,16 @@ export const PlayerProvider = ({ children }) => {
   }, [queue]);
 
   const playAlbum = (albumSongs, startAtIndex = 0) => {
-    setQueue(albumSongs);
+    // Ensure the songs in the queue have cover art if they don't already
+    const songsWithCovers = albumSongs.map(song => {
+        if (song.cover) return song;
+        // If playing from search results, cover is already there.
+        // If playing from an album, find its parent album cover.
+        const parentAlbum = albums.find(a => a.songs.some(s => s.id === song.id));
+        return { ...song, cover: parentAlbum.cover };
+    });
+
+    setQueue(songsWithCovers);
     setCurrentTrackIndex(startAtIndex);
     setIsPlaying(true);
   };
