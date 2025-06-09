@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { getGeniusSongUrl, getLyrics } from '../services/genius';
+import { findBestGeniusUrl, getLyrics } from '../services/genius';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
@@ -110,7 +110,6 @@ const LyricsModal = ({ song, onClose }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Prevent background scrolling when modal is open
     document.body.style.overflow = 'hidden';
 
     if (!song) return;
@@ -121,11 +120,9 @@ const LyricsModal = ({ song, onClose }) => {
       setLyrics('');
 
       try {
-        // Step 1: Get the URL from Genius API
-        const url = await getGeniusSongUrl(song.title, song.artist);
+        const url = await findBestGeniusUrl(song); // <-- Use the new, more robust function
         
         if (url) {
-          // Step 2: If we have a URL, scrape it for lyrics
           const scrapedLyrics = await getLyrics(url);
           if (scrapedLyrics) {
             setLyrics(scrapedLyrics);
@@ -145,7 +142,6 @@ const LyricsModal = ({ song, onClose }) => {
 
     fetchLyricsData();
 
-    // Cleanup function to re-enable scrolling when component unmounts
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -167,9 +163,6 @@ const LyricsModal = ({ song, onClose }) => {
             {isLoading && <LoadingMessage>Searching for lyrics...</LoadingMessage>}
             {error && <ErrorMessage>{error}</ErrorMessage>}
             {lyrics && (
-                // This is necessary because the scraped lyrics contain HTML tags like <br>
-                // It's generally risky but acceptable here since we control the source (our proxy)
-                // and have performed basic cleanup in the service.
                 <div dangerouslySetInnerHTML={{ __html: lyrics }} />
             )}
         </LyricsContainer>
