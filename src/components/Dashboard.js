@@ -24,7 +24,6 @@ const AppLayout = styled.div`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    // Sidebar is no longer in the grid on mobile; it's an overlay
     grid-template-areas:
       "main"
       "player";
@@ -43,7 +42,6 @@ const SidebarWrapper = styled.div`
   grid-area: sidebar;
   
   @media (max-width: 768px) {
-    /* On mobile, the sidebar is not part of the main grid flow */
     grid-area: unset;
   }
 `;
@@ -51,7 +49,7 @@ const SidebarWrapper = styled.div`
 const PlayerWrapper = styled.div`
   grid-area: player;
   position: relative;
-  z-index: 1001; /* Ensures player is above main content */
+  z-index: 1001;
 `;
 
 const AppContent = () => {
@@ -60,7 +58,6 @@ const AppContent = () => {
 
     return (
         <>
-            {/* The full-screen player view remains an overlay */}
             {isPlayerViewOpen && <PlayerView />}
 
             <AppLayout>
