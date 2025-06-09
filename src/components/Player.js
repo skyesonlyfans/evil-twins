@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerContainer = styled.div`
   .rhap_container {
@@ -55,6 +55,11 @@ const PlayerContainer = styled.div`
     font-size: 2.5rem;
     width: 50px;
     height: 50px;
+    color: ${({ theme }) => theme.colors.primary};
+  }
+
+  .rhap_play-pause-button:hover {
+    color: ${({ theme }) => theme.colors.primaryDark};
   }
 
   /* Custom Controls Wrapper */
@@ -87,6 +92,8 @@ const CustomControlButton = styled.button`
 
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const playerRef = useRef(null);
+
   const {
     currentTrack,
     isPlaying,
@@ -96,6 +103,17 @@ const Player = () => {
     playPrevious,
     toggleShuffle,
   } = usePlayer();
+
+  // This effect syncs our context's play state WITH the player's actual state
+  useEffect(() => {
+    if (playerRef.current && playerRef.current.audio.current) {
+        if (isPlaying) {
+            playerRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
+        } else {
+            playerRef.current.audio.current.pause();
+        }
+    }
+  }, [isPlaying, currentTrack]); // Re-run when the track changes or play state is toggled
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
@@ -110,17 +128,19 @@ const Player = () => {
     <>
       <PlayerContainer>
         <AudioPlayer
+          ref={playerRef}
           autoPlayAfterSrcChange={true}
           src={currentTrack ? currentTrack.url : ""}
           header={currentTrack ? `${currentTrack.title} - ${currentTrack.artist}`: "Select a song to play"}
           
-          playing={isPlaying}
+          // Let the component handle its own state, but report changes up to our context
           onPlay={handlePlay}
           onPause={handlePause}
           
+          // Wire up controls to context functions
           onClickNext={playNext}
           onClickPrevious={playPrevious}
-          onEnded={playNext}
+          onEnded={playNext} // Automatically play next song when one ends
 
           customControlsSection={[
               <CustomControls key="custom-controls">
@@ -128,7 +148,7 @@ const Player = () => {
                       <FontAwesomeIcon icon={faRandom} />
                   </CustomControlButton>
                   <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
-                      <FontAwesomeIcon icon={faFileAlt} />
+                      <FontAwesomeIcon icon={faQuoteRight} />
                   </CustomControlButton>
               </CustomControls>
           ]}
