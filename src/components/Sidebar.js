@@ -12,22 +12,23 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 24px;
+  overflow: hidden; /* Prevent content from spilling out */
 
   @media (max-width: 768px) {
-    /* For now, we'll hide it on mobile. We can add a toggle button later. */
     display: none;
   }
 `;
 
 const SidebarLogo = styled.h1`
   font-family: ${({ theme }) => theme.fonts.logo};
-  font-size: 2.2rem;  /* <-- Reduced font size */
+  font-size: clamp(1.8rem, 12vw, 2.2rem); /* Responsive font size */
   font-weight: normal;
   color: ${({ theme }) => theme.colors.primary};
-  margin: 0 0 2rem 0; /* Adjusted margin */
+  margin: 0 0 2rem 0;
   text-align: center;
-  letter-spacing: 1px; /* <-- Reduced letter spacing */
-  line-height: 1.2;    /* <-- Added line-height for better spacing */
+  letter-spacing: 1px;
+  line-height: 1.1;
+  word-break: break-word; /* Allow the word to break if needed */
 `;
 
 const NavList = styled.nav`
@@ -101,7 +102,7 @@ const Sidebar = () => {
 
   return (
     <SidebarContainer>
-      <SidebarLogo>EvilTwins</SidebarLogo>
+      <SidebarLogo>Evil Twins</SidebarLogo>
       <NavList>
         <StyledNavLink to="/" end>
           <FontAwesomeIcon icon={faHome} />
