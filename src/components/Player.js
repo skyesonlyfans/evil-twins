@@ -7,6 +7,7 @@ import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRandom, faQuoteRight, faExpand, faCompress } from '@fortawesome/free-solid-svg-icons';
 
+// The container is no longer position: fixed
 const PlayerBarContainer = styled.div`
   background-color: #181818;
   border-top: 1px solid #282828;
@@ -16,29 +17,16 @@ const PlayerBarContainer = styled.div`
   padding: 0 20px;
   height: 90px;
   width: 100%;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr auto;
     padding: 8px 16px;
-    height: 70px;
+    height: auto; // Auto height for mobile
+    min-height: 70px;
   }
 `;
 
-const PlayerWrapper = styled.div`
-  grid-area: player;
-`;
-
-const MainLayout = styled.div`
-  /* This ensures there's space for the fixed player at the bottom */
-  padding-bottom: 90px;
-  @media (max-width: 768px) {
-    padding-bottom: 70px;
-  }
-`;
+// Removed the MainLayout wrapper from this file
 
 const TrackInfoContainer = styled.div`
   display: flex;
@@ -91,13 +79,17 @@ const PlayerControlsContainer = styled.div`
   .rhap_main-controls-button, .rhap_volume-button, .rhap_repeat-button { color: ${({ theme }) => theme.colors.textSecondary}; font-size: 1.2rem; &:hover { color: #fff; } }
   .rhap_play-pause-button { color: #fff; font-size: 2.2rem; &:hover { color: #fff; } }
 
+  // Hides unnecessary controls on mobile for a cleaner look
   @media (max-width: 768px) {
-    .rhap_progress-section, .rhap_volume-controls, .rhap_additional-controls {
+    .rhap_progress-section, .rhap_volume-controls, .rhap_additional-controls, .rhap_main-controls-button[aria-label="Previous"], .rhap_main-controls-button[aria-label="Next"] {
       display: none;
     }
     .rhap_main-controls {
       justify-content: flex-end;
-      gap: 10px;
+      padding-right: 10px;
+    }
+     .rhap_play-pause-button {
+      font-size: 1.8rem;
     }
   }
 `;
@@ -107,20 +99,12 @@ const CustomControlsContainer = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 20px;
-`;
-
-const CustomControlButton = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.colors.textSecondary};
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text};
+  
+  @media (max-width: 768px) {
+    display: none; // Hide on mobile as they are in the PlayerView
   }
 `;
+
 
 const Player = () => {
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
@@ -132,71 +116,70 @@ const Player = () => {
 
   useEffect(() => {
     if (audioRef.current && audioRef.current.audio.current) {
-      if (isPlaying && currentTrack) {
-        audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
-      } else {
-        audioRef.current.audio.current.pause();
-      }
+        if (isPlaying && currentTrack) {
+            audioRef.current.audio.current.play().catch(e => console.error("Playback error:", e));
+        } else {
+            audioRef.current.audio.current.pause();
+        }
     }
   }, [isPlaying, currentTrack, audioRef]);
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
   const handleLyricsClick = () => currentTrack && setIsLyricsOpen(true);
+  
+  if (!currentTrack) {
+      return null; // Don't render the player if there's no track
+  }
 
   return (
     <>
-      <MainLayout>
-        <PlayerBarContainer>
-          <TrackInfoContainer onClick={togglePlayerView}>
-            {currentTrack && (
-              <>
-                <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
-                <TrackDetails>
-                  <TrackTitle>{currentTrack.title}</TrackTitle>
-                  <TrackArtist>{currentTrack.artist}</TrackArtist>
-                </TrackDetails>
-              </>
-            )}
-          </TrackInfoContainer>
-          
-          <PlayerControlsContainer>
-            <AudioPlayer
-              ref={audioRef}
-              autoPlayAfterSrcChange={false}
-              src={currentTrack ? currentTrack.url : ""}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onClickNext={playNext}
-              onClickPrevious={playPrevious}
-              onEnded={playNext}
-              onListen={(e) => setCurrentTime(e.target.currentTime)}
-              onLoadedMetadata={(e) => setDuration(e.target.duration)}
-              listenInterval={100}
-              showSkipControls={true}
-              showJumpControls={false}
-              layout="stacked-reverse"
-            />
-          </PlayerControlsContainer>
+      <PlayerBarContainer>
+        <TrackInfoContainer onClick={togglePlayerView}>
+            <AlbumArt src={currentTrack.cover} alt={currentTrack.title} />
+            <TrackDetails>
+            <TrackTitle>{currentTrack.title}</TrackTitle>
+            <TrackArtist>{currentTrack.artist}</TrackArtist>
+            </TrackDetails>
+        </TrackInfoContainer>
+        
+        <PlayerControlsContainer>
+          <AudioPlayer
+            ref={audioRef}
+            autoPlayAfterSrcChange={false}
+            src={currentTrack.url}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onClickNext={playNext}
+            onClickPrevious={playPrevious}
+            onEnded={playNext}
+            onListen={(e) => setCurrentTime(e.target.currentTime)}
+            onLoadedMetadata={(e) => setDuration(e.target.duration)}
+            listenInterval={100}
+            showSkipControls={true}
+            showJumpControls={false}
+            layout="stacked-reverse"
+          />
+        </PlayerControlsContainer>
 
-          <CustomControlsContainer>
+        <CustomControlsContainer>
             <CustomControlButton onClick={toggleShuffle} $isActive={isShuffling} aria-label="Shuffle">
-              <FontAwesomeIcon icon={faRandom} />
+                <FontAwesomeIcon icon={faRandom} />
             </CustomControlButton>
             <CustomControlButton onClick={handleLyricsClick} aria-label="Show Lyrics">
-              <FontAwesomeIcon icon={faQuoteRight} />
+                <FontAwesomeIcon icon={faQuoteRight} />
             </CustomControlButton>
             <CustomControlButton onClick={togglePlayerView} aria-label="Toggle Player View">
               <FontAwesomeIcon icon={isPlayerViewOpen ? faCompress : faExpand} />
             </CustomControlButton>
-          </CustomControlsContainer>
-        </PlayerBarContainer>
-      </MainLayout>
+        </CustomControlsContainer>
 
-      {isLyricsOpen && currentTrack && (
+      </PlayerBarContainer>
+
+      {isLyricsOpen && (
         <LyricsModal 
-          song={currentTrack} 
-          onClose={() => setIsLyricsOpen(false)} 
+            song={currentTrack} 
+            onClose={() => setIsLyricsOpen(false)} 
         />
       )}
     </>
