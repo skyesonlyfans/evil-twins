@@ -7,7 +7,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 
 // Global styles for the Spotify-esque look
-const GlobalStyle = createGlobalstyle`
+const GlobalStyle = createGlobalStyle`
   * {
     box-sizing: border-box;
     margin: 0;
@@ -48,7 +48,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route 
-            path="/"
+            path="/*"
             element={
               <PrivateRoute>
                 <Dashboard />
