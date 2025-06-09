@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import { usePlayer } from '../contexts/PlayerContext';
 import { findBestGeniusUrl, getLyrics } from '../services/genius';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -72,15 +73,14 @@ const LyricsContainer = styled.div`
   line-height: 1.8;
   font-size: 1.1rem;
   color: ${({ theme }) => theme.colors.textSecondary};
+  scroll-behavior: smooth;
 
-  /* We are using dangerouslySetInnerHTML, so style the inner elements directly */
   br {
     display: block;
     content: "";
     margin-top: 1.5rem;
   }
 
-  /* Custom Scrollbar for lyrics */
   &::-webkit-scrollbar {
     width: 10px;
   }
@@ -108,6 +108,8 @@ const LyricsModal = ({ song, onClose }) => {
   const [lyrics, setLyrics] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { currentTime, duration } = usePlayer();
+  const lyricsRef = useRef(null);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -120,7 +122,7 @@ const LyricsModal = ({ song, onClose }) => {
       setLyrics('');
 
       try {
-        const url = await findBestGeniusUrl(song); // <-- Use the new, more robust function
+        const url = await findBestGeniusUrl(song);
         
         if (url) {
           const scrapedLyrics = await getLyrics(url);
@@ -148,6 +150,14 @@ const LyricsModal = ({ song, onClose }) => {
 
   }, [song]);
 
+  useEffect(() => {
+    if (lyricsRef.current && duration > 0) {
+      const scrollPercent = currentTime / duration;
+      const scrollHeight = lyricsRef.current.scrollHeight - lyricsRef.current.clientHeight;
+      lyricsRef.current.scrollTop = scrollHeight * scrollPercent;
+    }
+  }, [currentTime, duration]);
+
   return (
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
@@ -159,7 +169,7 @@ const LyricsModal = ({ song, onClose }) => {
             <SongArtist>{song.artist}</SongArtist>
         </ModalHeader>
         
-        <LyricsContainer>
+        <LyricsContainer ref={lyricsRef}>
             {isLoading && <LoadingMessage>Searching for lyrics...</LoadingMessage>}
             {error && <ErrorMessage>{error}</ErrorMessage>}
             {lyrics && (
