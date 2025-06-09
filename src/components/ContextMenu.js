@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 const Overlay = styled.div`
@@ -24,6 +24,12 @@ const MenuContainer = styled.div.attrs(props => ({
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   padding: 5px;
   z-index: 1020;
+  opacity: 0; /* Start hidden until position is calculated */
+  transition: opacity 0.1s ease-in-out;
+
+  &.visible {
+    opacity: 1;
+  }
 `;
 
 const MenuItem = styled.button`
@@ -46,6 +52,8 @@ const MenuItem = styled.button`
 
 const ContextMenu = ({ isOpen, onClose, position, menuItems }) => {
   const menuRef = useRef(null);
+  const [calculatedPosition, setCalculatedPosition] = useState({ x: 0, y: 0 });
+  const [isVisible, setIsVisible] = useState(false);
 
   // Close menu if clicking outside of it
   useEffect(() => {
@@ -62,11 +70,44 @@ const ContextMenu = ({ isOpen, onClose, position, menuItems }) => {
     };
   }, [isOpen, onClose]);
 
+  // Calculate position after menu is rendered
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      const menuWidth = menuRef.current.offsetWidth;
+      const menuHeight = menuRef.current.offsetHeight;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      let x = position.x;
+      let y = position.y;
+
+      // If menu overflows horizontally, flip it to the left of the cursor
+      if (x + menuWidth > windowWidth) {
+        x = x - menuWidth;
+      }
+
+      // If menu overflows vertically, align its bottom with the cursor
+      if (y + menuHeight > windowHeight) {
+        y = y - menuHeight;
+      }
+      
+      setCalculatedPosition({ x, y });
+      setIsVisible(true); // Make it visible after position is calculated
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen, position]);
+
+
   if (!isOpen) return null;
 
   return (
     <Overlay onClick={onClose}>
-      <MenuContainer ref={menuRef} position={position}>
+      <MenuContainer 
+        ref={menuRef} 
+        position={calculatedPosition} 
+        className={isVisible ? 'visible' : ''}
+      >
         {menuItems.map((item, index) => (
           <MenuItem
             key={index}
