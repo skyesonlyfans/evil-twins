@@ -106,7 +106,7 @@ const CreatePlaylistModal = ({ isOpen, onClose }) => {
         <ModalTitle>Create Playlist</ModalTitle>
         <Input 
             type="text"
-            placeholder="My Awesome Playlist"
+            placeholder="(e.g. favorites)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
