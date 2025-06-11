@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { getLyricsFromDB, addLyricsToDB } from '../utils/db';
 
+const LRC_API_BASE_URL = 'https://lrclib.net/api';
+
 /**
  * Parses a standard LRC format string into an array of timed lyric objects.
  * @param {string} lrcText The LRC formatted text.
