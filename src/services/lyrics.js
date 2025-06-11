@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { getLyricsFromDB, addLyricsToDB } from '../utils/db';
 
-const LRC_API_BASE_URL = 'https://lrclib.net/api';
-
 /**
  * Parses a standard LRC format string into an array of timed lyric objects.
  * @param {string} lrcText The LRC formatted text.
@@ -32,49 +30,64 @@ const parseLRC = (lrcText) => {
 };
 
 /**
- * Fallback function to scrape plain text lyrics from Lyricsify.
- * NOTE: This is fragile and depends on the website's HTML structure, which can change.
- * This will likely be blocked by CORS in a live browser environment without a proxy.
+ * Fallback function to scrape LRC data from Lyricsify.com.
+ * This is a multi-step process and is dependent on the website's structure.
  * @param {object} song The song object.
- * @returns {Promise<{plain: string, synced: null}|null>}
+ * @returns {Promise<{plain: string, synced: object}|null>}
  */
 const fetchLyricsFromLyricsify = async (song) => {
     console.log(`Falling back to scrape lyrics from Lyricsify for "${song.title}"...`);
     try {
-        // This simplified approach assumes the URL structure is consistent.
-        // A more robust solution would search and parse the results.
-        const artist = song.artist.toLowerCase().replace(/ /g, '-');
-        const title = song.title.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '');
-        const pageUrl = `https://www.lyricsify.com/lyrics/${artist}/${title}`;
+        // Step 1: Search for the song to find its specific URL
+        const searchQuery = `${song.title} ${song.artist}`;
+        const searchUrl = `https://www.lyricsify.com/search?q=${encodeURIComponent(searchQuery)}`;
+        
+        const { data: searchHtml } = await axios.get(searchUrl);
+        
+        // Step 2: Parse the search page to find the first result link
+        const songLinkRegex = /<a href="(\/lyrics\/[^"]+)" class="title">/g;
+        const songLinkMatch = songLinkRegex.exec(searchHtml);
+        
+        if (!songLinkMatch || !songLinkMatch[1]) {
+            console.log("Could not find a matching song link on Lyricsify search results.");
+            return null;
+        }
+        const songPageUrl = `https://www.lyricsify.com${songLinkMatch[1]}`;
 
-        // This request will likely fail due to CORS without a server-side proxy.
-        const { data: html } = await axios.get(pageUrl);
+        // Step 3: Fetch the actual song page
+        const { data: songPageHtml } = await axios.get(songPageUrl);
 
-        // This regex looks for the specific div containing the lyrics on Lyricsify.
-        const lyricsDivRegex = /<div id="lyrics"[^>]*>([\s\S]*?)<\/div>/;
-        const match = html.match(lyricsDivRegex);
+        // Step 4: Extract the raw LRC content from the page
+        const lrcContentRegex = /<div id="lrc"[^>]*>([\s\S]*?)<\/div>/;
+        const lrcMatch = lrcContentRegex.exec(songPageHtml);
 
-        if (match && match[1]) {
-            let lyricsText = match[1].replace(/<br\s*\/?>/gi, '\n').trim();
-            // Create a temporary element to decode HTML entities
+        if (lrcMatch && lrcMatch[1]) {
+            let rawLrc = lrcMatch[1];
+            // Decode any HTML entities (like &amp;, &quot;, etc.)
             const txt = document.createElement("textarea");
-            txt.innerHTML = lyricsText;
-            lyricsText = txt.value;
+            txt.innerHTML = rawLrc;
+            rawLrc = txt.value;
+
+            const plainLyrics = rawLrc.replace(/\[.*?\]/g, '').trim();
+            const syncedLyrics = parseLRC(rawLrc);
             
-            console.log(`Successfully scraped lyrics for "${song.title}" from Lyricsify.`);
-            const result = { plainLyrics: lyricsText, syncedLyrics: null };
-            await addLyricsToDB(song.id, result); // Cache the result
-            return { plain: lyricsText, synced: null };
+            if (syncedLyrics) {
+                console.log(`Successfully scraped LRC for "${song.title}" from Lyricsify.`);
+                // Cache the raw response from Lyricsify so we can parse it again later
+                await addLyricsToDB(song.id, { plainLyrics, syncedLyrics: rawLrc });
+                return { plain: plainLyrics, synced: syncedLyrics };
+            }
         }
         return null;
     } catch (error) {
-        console.error(`Failed to scrape Lyricsify for "${song.title}". This may be a CORS issue.`, error);
+        console.error(`Failed to scrape Lyricsify for "${song.title}". This could be a CORS issue or a change in the website's layout.`, error);
         return null;
     }
 }
 
+
 /**
- * Fetches lyrics by checking cache, then lrclib, then falling back to Lyricsify.
+ * Main function to fetch lyrics with multiple fallbacks.
  * @param {object} song The song object.
  * @param {number} duration The duration of the song in seconds.
  * @returns {Promise<{synced: Array, plain: string}|null>}
@@ -82,7 +95,7 @@ const fetchLyricsFromLyricsify = async (song) => {
 export const getLyrics = async (song, duration) => {
     if (!song) return null;
 
-    // 1. Check local cache
+    // 1. Check local cache (IndexedDB) first
     const cachedLyrics = await getLyricsFromDB(song.id);
     if (cachedLyrics) {
         console.log(`Found lyrics for "${song.title}" in cache.`);
@@ -96,7 +109,8 @@ export const getLyrics = async (song, duration) => {
 
     try {
         // 2. Try precise match on lrclib.net
-        let response = await axios.get(`${LRC_API_BASE_URL}/get`, {
+        const lrcLibGetUrl = `https://lrclib.net/api/get`;
+        let response = await axios.get(lrcLibGetUrl, {
             params: {
                 track_name: song.title,
                 artist_name: song.artist,
@@ -116,7 +130,8 @@ export const getLyrics = async (song, duration) => {
 
         // 3. Fall back to lrclib.net search
         console.log(`No precise match, falling back to lrclib.net search for "${song.title}".`);
-        response = await axios.get(`${LRC_API_BASE_URL}/search`, {
+        const lrcLibSearchUrl = `https://lrclib.net/api/search`;
+        response = await axios.get(lrcLibSearchUrl, {
             params: { track_name: song.title, artist_name: song.artist }
         });
 
