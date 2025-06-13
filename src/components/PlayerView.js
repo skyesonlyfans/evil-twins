@@ -5,120 +5,6 @@ import { getLyrics } from '../services/lyrics';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faStepBackward, faStepForward, faPause, faPlay, faRandom } from '@fortawesome/free-solid-svg-icons';
 
-// ... (styled components are unchanged)
-
-const PlayerView = () => {
-  const { 
-    currentTrack, isPlaying, isShuffling, duration, currentTime,
-    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
-  } = usePlayer();
-  
-  const [lyrics, setLyrics] = useState(null);
-  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
-
-  const activeLineRef = useRef(null);
-
-  useEffect(() => {
-    if (!currentTrack) return;
-    
-    const fetchLyricsData = async () => {
-      setIsLoadingLyrics(true);
-      setLyrics(null);
-      try {
-        const fetchedLyrics = await getLyrics(currentTrack, duration);
-        setLyrics(fetchedLyrics);
-      } catch (error) {
-        console.error("Lyrics component error:", error);
-        setLyrics(null); // Ensure lyrics are null on error
-      } finally {
-        // This 'finally' block ensures loading is always set to false
-        setIsLoadingLyrics(false);
-      }
-    };
-    
-    fetchLyricsData();
-  }, [currentTrack, duration]);
-  
-  // ... (The rest of the logic and JSX is correct from the previous step)
-  useEffect(() => {
-    if (lyrics?.synced) {
-      const activeLine = lyrics.synced.findIndex((line, index) => {
-        const nextLine = lyrics.synced[index + 1];
-        return currentTime >= line.time && (nextLine ? currentTime < nextLine.time : true);
-      });
-      setCurrentLineIndex(activeLine);
-    }
-  }, [currentTime, lyrics]);
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
-  }, [currentLineIndex]);
-
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  if (!currentTrack) return null;
-
-  const renderLyrics = () => {
-      if(isLoadingLyrics) return <LyricLine>Loading lyrics...</LyricLine>;
-      if(!lyrics || (!lyrics.synced && !lyrics.plain)) return <LyricLine>Lyrics not found.</LyricLine>;
-
-      if(lyrics.synced && lyrics.synced.length > 0){
-          return lyrics.synced.map((line, index) => (
-             <LyricLine key={`${line.time}-${index}`} $isActive={index === currentLineIndex} ref={index === currentLineIndex ? activeLineRef : null}>
-                 {line.text}
-             </LyricLine>
-          ));
-      }
-      // Fallback to plain lyrics
-      return lyrics.plain.split('\n').map((line, index) => <LyricLine key={index}>{line}</LyricLine>)
-  }
-
-  return (
-    <PlayerViewOverlay bgImage={currentTrack.cover}>
-      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
-        <FontAwesomeIcon icon={faChevronDown} />
-      </CloseButton>
-      <PlayerViewContent>
-        <ArtAndControls>
-            <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
-            <TrackInfo>
-                <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
-                <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
-            </TrackInfo>
-            <ProgressBarContainer>
-                <TimeText>{formatTime(currentTime)}</TimeText>
-                <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(e.target.value)} />
-                <TimeText>{formatTime(duration)}</TimeText>
-            </ProgressBarContainer>
-            <ControlsContainer>
-                <ControlButton onClick={toggleShuffle} $isActive={isShuffling}><FontAwesomeIcon icon={faRandom} /></ControlButton>
-                <ControlButton onClick={playPrevious}><FontAwesomeIcon icon={faStepBackward} /></ControlButton>
-                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)}><FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /></PlayPauseButton>
-                <ControlButton onClick={playNext}><FontAwesomeIcon icon={faStepForward} /></ControlButton>
-                <ControlButton style={{opacity: 0, cursor: 'default'}}><FontAwesomeIcon icon={faRandom} /></ControlButton>
-            </ControlsContainer>
-        </ArtAndControls>
-        <LyricsPanel>
-          <LyricsContainer>
-              {renderLyrics()}
-          </LyricsContainer>
-        </LyricsPanel>
-      </PlayerViewContent>
-    </PlayerViewOverlay>
-  );
-};
-
-
 const PlayerViewOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -129,8 +15,14 @@ const PlayerViewOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px; /* Add padding for smaller screens */
+  padding: 20px;
   
+  /* Apply the background image to the main element */
+  background-image: url(${props => props.bgImage});
+  background-size: cover;
+  background-position: center;
+
+  /* Use a pseudo-element for the overlay and stable backdrop-filter to fix mobile bug */
   &::before {
     content: '';
     position: absolute;
@@ -138,11 +30,9 @@ const PlayerViewOverlay = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url(${props => props.bgImage});
-    background-size: cover;
-    background-position: center;
-    filter: blur(30px) brightness(0.4);
-    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.5); /* Dark overlay for readability */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px); /* Safari support */
     z-index: -1;
   }
 `;
@@ -334,4 +224,114 @@ const LyricLine = styled.p`
         transform: scale(1.05);
     `}
 `;
+
+const PlayerView = () => {
+  const { 
+    currentTrack, isPlaying, isShuffling, duration, currentTime,
+    setIsPlaying, playNext, playPrevious, toggleShuffle, togglePlayerView, seek 
+  } = usePlayer();
+  
+  const [lyrics, setLyrics] = useState(null);
+  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+  const [isLoadingLyrics, setIsLoadingLyrics] = useState(true);
+
+  const activeLineRef = useRef(null);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    
+    const fetchLyricsData = async () => {
+      setIsLoadingLyrics(true);
+      setLyrics(null);
+      try {
+        const fetchedLyrics = await getLyrics(currentTrack, duration);
+        setLyrics(fetchedLyrics);
+      } catch (error) {
+        console.error("Lyrics component error:", error);
+        setLyrics(null);
+      } finally {
+        setIsLoadingLyrics(false);
+      }
+    };
+    
+    fetchLyricsData();
+  }, [currentTrack, duration]);
+  
+  useEffect(() => {
+    if (lyrics?.synced) {
+      const activeLine = lyrics.synced.findIndex((line, index) => {
+        const nextLine = lyrics.synced[index + 1];
+        return currentTime >= line.time && (nextLine ? currentTime < nextLine.time : true);
+      });
+      setCurrentLineIndex(activeLine);
+    }
+  }, [currentTime, lyrics]);
+
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentLineIndex]);
+
+  const formatTime = (timeInSeconds) => {
+    if (isNaN(timeInSeconds)) return '0:00';
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  if (!currentTrack) return null;
+
+  const renderLyrics = () => {
+      if(isLoadingLyrics) return <LyricLine>Loading lyrics...</LyricLine>;
+      if(!lyrics || (!lyrics.synced && !lyrics.plain)) return <LyricLine>Lyrics not found.</LyricLine>;
+
+      if(lyrics.synced && lyrics.synced.length > 0){
+          return lyrics.synced.map((line, index) => (
+             <LyricLine key={`${line.time}-${index}`} $isActive={index === currentLineIndex} ref={index === currentLineIndex ? activeLineRef : null}>
+                 {line.text}
+             </LyricLine>
+          ));
+      }
+      return lyrics.plain.split('\n').map((line, index) => <LyricLine key={index}>{line}</LyricLine>)
+  }
+
+  return (
+    <PlayerViewOverlay bgImage={currentTrack.cover}>
+      <CloseButton onClick={togglePlayerView} aria-label="Minimize Player">
+        <FontAwesomeIcon icon={faChevronDown} />
+      </CloseButton>
+      <PlayerViewContent>
+        <ArtAndControls>
+            <AlbumArtLarge src={currentTrack.cover} alt={currentTrack.title} />
+            <TrackInfo>
+                <TrackTitleLarge>{currentTrack.title}</TrackTitleLarge>
+                <TrackArtistLarge>{currentTrack.artist}</TrackArtistLarge>
+            </TrackInfo>
+            <ProgressBarContainer>
+                <TimeText>{formatTime(currentTime)}</TimeText>
+                <SeekBar type="range" min="0" max={duration || 0} value={currentTime} onChange={(e) => seek(Number(e.target.value))} />
+                <TimeText>{formatTime(duration)}</TimeText>
+            </ProgressBarContainer>
+            <ControlsContainer>
+                <ControlButton onClick={toggleShuffle} $isActive={isShuffling}><FontAwesomeIcon icon={faRandom} /></ControlButton>
+                <ControlButton onClick={playPrevious}><FontAwesomeIcon icon={faStepBackward} /></ControlButton>
+                <PlayPauseButton onClick={() => setIsPlaying(!isPlaying)}><FontAwesomeIcon icon={isPlaying ? faPause : faPlay} /></PlayPauseButton>
+                <ControlButton onClick={playNext}><FontAwesomeIcon icon={faStepForward} /></ControlButton>
+                <ControlButton style={{opacity: 0, cursor: 'default'}}><FontAwesomeIcon icon={faRandom} /></ControlButton>
+            </ControlsContainer>
+        </ArtAndControls>
+        <LyricsPanel>
+          <LyricsContainer>
+              {renderLyrics()}
+          </LyricsContainer>
+        </LyricsPanel>
+      </PlayerViewContent>
+    </PlayerViewOverlay>
+  );
+};
+
 export default PlayerView;
