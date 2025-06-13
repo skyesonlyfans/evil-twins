@@ -181,6 +181,15 @@ const Player = () => {
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
+  
+  const handleLoadedMetadata = (e) => {
+    const audioDuration = e.target.duration;
+    // Safari can sometimes return Infinity for the duration of streaming media.
+    // This check ensures we only set the duration when it's a valid, finite number.
+    if (isFinite(audioDuration)) {
+      setDuration(audioDuration);
+    }
+  };
 
   const isCurrentSongDownloaded = currentTrack && downloadedSongIds.has(currentTrack.id);
 
@@ -211,7 +220,7 @@ const Player = () => {
             onClickPrevious={playPrevious}
             onEnded={playNext}
             onListen={(e) => setCurrentTime(e.target.currentTime)}
-            onLoadedMetadata={(e) => setDuration(e.target.duration)}
+            onLoadedMetadata={handleLoadedMetadata}
             listenInterval={100}
             showSkipControls={true}
             showJumpControls={false}
