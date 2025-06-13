@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import { usePlayer } from '../contexts/PlayerContext';
+import { useDownloads } from '../contexts/DownloadContext';
 import LyricsModal from './LyricsModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faPlay, faPause, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
+import { faRandom, faQuoteRight, faExpand, faCompress, faMusic, faDownload, faCheckCircle, faPlay, faPause, faStepForward, faStepBackward } from '@fortawesome/free-solid-svg-icons';
 
 const PlayerBarContainer = styled.div`
   background-color: #181818;
@@ -145,24 +146,44 @@ const Player = () => {
     setIsPlaying, playNext, playPrevious, toggleShuffle,
     setDuration, setCurrentTime, audioRef
   } = usePlayer();
+  const { downloadedSongIds, downloadSong, deleteSong } = useDownloads();
+
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      if (currentTrack) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTrack.title,
+          artist: currentTrack.artist,
+          album: currentTrack.albumName || 'EvilTwins',
+          artwork: [
+            { src: currentTrack.cover, sizes: '96x96', type: 'image/jpeg' },
+            { src: currentTrack.cover, sizes: '128x128', type: 'image/jpeg' },
+            { src: currentTrack.cover, sizes: '192x192', type: 'image/jpeg' },
+            { src: currentTrack.cover, sizes: '256x256', type: 'image/jpeg' },
+            { src: currentTrack.cover, sizes: '384x384', type: 'image/jpeg' },
+            { src: currentTrack.cover, sizes: '512x512', type: 'image/jpeg' },
+          ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
+        navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
+        navigator.mediaSession.setActionHandler('previoustrack', playPrevious);
+        navigator.mediaSession.setActionHandler('nexttrack', playNext);
+      }
+    }
+  }, [currentTrack, playNext, playPrevious, setIsPlaying]);
 
   useEffect(() => {
     const audioEl = audioRef.current?.audio?.current;
     if (!audioEl) return;
-
-    if (isPlaying) {
-      audioEl.play().catch(error => {
-        console.error("Playback failed:", error);
-        setIsPlaying(false);
-      });
-    } else {
-      audioEl.pause();
-    }
+    isPlaying ? audioEl.play().catch(() => setIsPlaying(false)) : audioEl.pause();
   }, [isPlaying, currentTrack, audioRef, setIsPlaying]);
 
   const handlePlay = () => setIsPlaying(true);
   const handlePause = () => setIsPlaying(false);
-  
+
+  const isCurrentSongDownloaded = currentTrack && downloadedSongIds.has(currentTrack.id);
+
   return (
     <>
       <PlayerBarContainer>
@@ -198,14 +219,21 @@ const Player = () => {
         </PlayerControlsContainer>
         
         <MobileControls>
+            <CustomControlButton 
+                onClick={() => isCurrentSongDownloaded ? deleteSong(currentTrack) : downloadSong(currentTrack)} 
+                disabled={!currentTrack} 
+                style={{fontSize: '1.2rem', color: isCurrentSongDownloaded ? 'var(--theme-colors-primary)' : 'white'}}
+            >
+                <FontAwesomeIcon icon={isCurrentSongDownloaded ? faCheckCircle : faDownload} />
+            </CustomControlButton>
             <CustomControlButton onClick={() => setIsPlaying(!isPlaying)} disabled={!currentTrack} style={{fontSize: '1.5rem', color: 'white'}}>
                 <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
             </CustomControlButton>
             <CustomControlButton onClick={playNext} disabled={!currentTrack} style={{fontSize: '1.5rem', color: 'white'}}>
                 <FontAwesomeIcon icon={faStepForward} />
             </CustomControlButton>
-            <CustomControlButton onClick={togglePlayerView} disabled={!currentTrack}>
-              <FontAwesomeIcon icon={faExpand} />
+             <CustomControlButton onClick={() => setIsLyricsOpen(true)} disabled={!currentTrack} style={{fontSize: '1.2rem', color: 'white'}}>
+                <FontAwesomeIcon icon={faQuoteRight} />
             </CustomControlButton>
         </MobileControls>
 
