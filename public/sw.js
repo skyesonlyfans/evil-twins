@@ -1,24 +1,27 @@
 /* eslint-disable no-restricted-globals */
 
-// A name for our cache
 const CACHE_NAME = 'eviltwins-audio-cache-v1';
 
-// This is the core logic for a network-first caching strategy.
-const networkFirst = async (request) => {
+// This is the core logic for a cache-first caching strategy.
+const cacheFirst = async (request) => {
+  // First, try to get the resource from the cache.
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  // If it's not in the cache, try to fetch it from the network.
   try {
-    // Always try to fetch from the network first.
     const networkResponse = await fetch(request);
-    // If we get a valid response, open the cache and put a copy of it there for later.
+    // If we get a valid response, cache it for later.
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
   } catch (error) {
-    // If the network fails (e.g., offline), try to get the response from the cache.
-    console.log('Network failed, trying cache...');
-    const cachedResponse = await caches.match(request);
-    return cachedResponse;
+    // If the network fails and it's not in the cache, we can't do anything.
+    console.error('Network request failed and resource not in cache:', error);
+    return;
   }
 };
 
@@ -26,14 +29,13 @@ const networkFirst = async (request) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // We only want to cache MP3 files using our network-first strategy.
+  // We only want to cache MP3 files using our cache-first strategy.
   if (request.url.endsWith('.mp3')) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(cacheFirst(request));
   }
 });
 
 // This event listener is how our main application will send messages to the service worker.
-// We'll use this to tell it which songs to download.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CACHE_SONGS') {
     const urlsToCache = event.data.payload.urls;
