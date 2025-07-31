@@ -2,7 +2,7 @@
 
 **A dedicated, ad-free music streaming experience for unreleased Juice WRLD. Built for the fans, by a fan.**
 
-[**eviltwins.cloud**](https://eviltwins.cloud)
+[**eviltwins.cloud**](https://www.eviltwins.cloud)
 
 ## **About The Project**
 
